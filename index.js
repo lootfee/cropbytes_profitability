@@ -1,11 +1,29 @@
-var configs
+var fruitConfig = [
+	{
+	assetId: 'at',
+	takes: [{assetId: 'water', count: 5}],
+	gives: [{extractId: 'aft', count: 3, extractTime: 3}]
+	}.
+	{
+	assetId: 'bt',
+	takes: [{assetId: 'water', count: 5}],
+	gives: [{extractId: 'bft', count: 5, extractTime: 5}]
+	},
+	{
+	assetId: 'ort',
+	takes: [{assetId: 'water', count: 10}],
+	gives: [{extractId: 'oft', count: 2, extractTime: 1}]
+	}
+]
+
+var feedConfigs
 function getConfigs(){
   $.ajax({
     url: "https://api.cropbytes.com/api/v1/game/launch",
     context: 'application/json',
     async: false
   }).done(function(data) {
-      configs = data.data.feedConfigNew
+      feedConfigs = data.data.feedConfigNew
     });
 }
 
@@ -90,7 +108,7 @@ function getAssetTakes(assetId){
   var takes_cont = $('<table></table>')
   var other_takes = $('<tr><th>Mon-Sat:</th><th></th><th></th></tr>')
   var sun_takes = $('<tr><th>Sun:</th><th></th><th></th></tr>')
-  var asset = configs.find(config => config.assetId == assetId)
+  var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   if (typeof asset !== "undefined"){
     if (asset.takes.other.length > 0){
@@ -118,7 +136,45 @@ function getAssetTakes(assetId){
 
 function getAssetGives(assetId){
   var gives_cont = $('<table></table>')
-  var asset = configs.find(config => config.assetId == assetId)
+  var asset = feedConfigs.find(config => config.assetId == assetId)
+  var totalPrice = 0
+  if (typeof asset !== "undefined"){
+    if (asset.gives.length > 0){
+      $(asset.gives).each(function(i, e){
+        $(gives_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.extractId) + ' / ' + asset.extractTime +' Days</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
+        totalPrice += (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3)
+        console.log(totalPrice)
+      });
+    }
+    return [gives_cont.prop('outerHTML'), totalPrice]
+  }
+  else {
+    return ['', '']
+  }
+}
+
+function getFruitTakes(assetId){
+  var takes_cont = $('<table></table>')
+  var asset = fruitConfigs.find(config => config.assetId == assetId)
+  var totalPrice = 0
+  if (typeof asset !== "undefined"){
+    if (asset.takes.length > 0){
+      //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
+      $(asset.takes).each(function(i, e){
+        $(takes_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.assetId) + '</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3))
+      });
+    }
+    return [takes_cont.prop('outerHTML'), totalPrice]
+  }
+  else {
+    return ['', '']
+  }
+}
+
+function getFruitGives(assetId){
+  var gives_cont = $('<table></table>')
+  var asset = fruitConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   if (typeof asset !== "undefined"){
     if (asset.gives.length > 0){
@@ -144,9 +200,9 @@ function showCards(){
                   ' <div class="card-body"> ' +
                   '  <div><strong> Name: '  + e.name + '</strong></div> ' +
                   '  <div>Market price: ' + getPrice(e.id).price +' ' + getPrice(e.id).market + ' ($' + getUsdPrice(getPrice(e.id).market, getPrice(e.id).price)  + ')</div>' +
-                  '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] +
-                  '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] +
-                  '    <div class="card-text" style="color: blue;"> Profit/Week: </div> $' + ((getAssetGives(e.id)[1] * 7) - getAssetTakes(e.id)[1]).toFixed(3).toString() +
+                  '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] +
+                  '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] +
+                  '    <div class="card-text" style="color: blue;"> Profit/Week: </div> $' + ((getAssetGives(e.id)[1] * 7) - getAssetTakes(e.id)[1]).toFixed(3).toString() + ((getFruitGives(e.id)[1] * 7) - getFruitTakes(e.id)[1]).toFixed(3).toString() +
                   '</div>' +
                 ' </div>' +
                 '</div>'
