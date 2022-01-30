@@ -1,18 +1,24 @@
-var fruitConfig = [
+var wells = ['sw', 'well', 'lake']
+var cropLands = ['scl', 'ocl', 'fcl']
+var fruits = ['at', 'bt', 'ort']
+var fruitConfigs = [
 	{
 	assetId: 'at',
 	takes: [{assetId: 'water', count: 5}],
-	gives: [{extractId: 'aft', count: 3, extractTime: 3}]
-	}.
+	gives: [{extractId: 'aft', count: 3}],
+  extractTime: 3
+	},
 	{
 	assetId: 'bt',
 	takes: [{assetId: 'water', count: 5}],
-	gives: [{extractId: 'bft', count: 5, extractTime: 5}]
+	gives: [{extractId: 'bft', count: 5}],
+  extractTime: 5
 	},
 	{
 	assetId: 'ort',
 	takes: [{assetId: 'water', count: 10}],
-	gives: [{extractId: 'oft', count: 2, extractTime: 1}]
+	gives: [{extractId: 'oft', count: 2}],
+  extractTime: 1
 	}
 ]
 
@@ -27,14 +33,32 @@ function getConfigs(){
     });
 }
 
-var currencies
+function getObjectKeysAlphabetical(obj) {
+    var keys = []
+    $(obj).each(function (i, e) {
+      keys.push(e.name)
+    })
+
+    keys.sort();
+    return keys;
+}
+
+var currencies = []
 function getCurrencies(){
   $.ajax({
     url: "https://api.cropbytes.com/api/v2/peatio/public/currencies",
     context: 'application/json',
     async: false
   }).done(function(data) {
-      currencies = data
+    var keys = getObjectKeysAlphabetical(data)
+    //i = 0, key = null, val = null;
+    $(keys).each(function (i, e) {
+      console.log(e)
+      var asset = data.find(currency => currency.name == e)
+      currencies.push(asset)
+    })
+    console.log(currencies)
+      //currencies = data
     });
 }
 
@@ -79,7 +103,7 @@ function getPrice(assetId){
   else {
     return {'price': '', 'market': ''}
   }
-  
+
 }
 
 function getUsdPrice(market, price){
@@ -101,35 +125,33 @@ function getUsdPrice(market, price){
   else {
     return ''
   }
-  
+
 }
 
 function getAssetTakes(assetId){
   var takes_cont = $('<table></table>')
-  var other_takes = $('<tr><th>Mon-Sat:</th><th></th><th></th></tr>')
-  var sun_takes = $('<tr><th>Sun:</th><th></th><th></th></tr>')
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   if (typeof asset !== "undefined"){
     if (asset.takes.other.length > 0){
-      $(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
+      $(takes_cont).append('<tr><th colspan="3">Mon-Sat:</th></tr>');
       $(asset.takes.other).each(function(i, e){
-        $(takes_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.assetId) + '</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3))
+        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        totalPrice += (6 * parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3)))
       });
     }
     if (asset.takes.sun.length > 0){
-      $(takes_cont).append('<tr><th>Sun:</th></tr>');
+      $(takes_cont).append('<tr><th colspan="3">Sun:</th></tr>');
       $(asset.takes.sun).each(function(i, e){
-        $(takes_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.assetId) + '</td><td style="padding:0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        $(takes_cont).append('<tr><td style="padding:0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
         totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3))
-        console.log('takes', totalPrice)
+        //console.log('takes', totalPrice)
       });
     }
     return [takes_cont.prop('outerHTML'), totalPrice]
   }
   else {
-    return ['', '']
+    return ['', 0]
   }
 }
 
@@ -138,18 +160,20 @@ function getAssetGives(assetId){
   var gives_cont = $('<table></table>')
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
+  var extractTime = 0
   if (typeof asset !== "undefined"){
+    extractTime = asset.extractTime
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.extractId) + ' / ' + asset.extractTime +' Days</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
         totalPrice += (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3)
-        console.log(totalPrice)
+        //console.log(totalPrice)
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
   }
   else {
-    return ['', '']
+    return ['', 0, 0]
   }
 }
 
@@ -161,48 +185,89 @@ function getFruitTakes(assetId){
     if (asset.takes.length > 0){
       //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
       $(asset.takes).each(function(i, e){
-        $(takes_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.assetId) + '</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3))
+        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        //$(takes_cont).append('<tr><td colspan="3">Grinding fee: 0.01 trx/crop</td></tr>')
+        totalPrice += (parseFloat((0.01 * e.count) * getUsdPrice('usdt', getPrice('trx').price)) + parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)))).toFixed(3)
       });
     }
     return [takes_cont.prop('outerHTML'), totalPrice]
   }
   else {
-    return ['', '']
+    return ['', 0]
   }
 }
 
 function getFruitGives(assetId){
   var gives_cont = $('<table></table>')
   var asset = fruitConfigs.find(config => config.assetId == assetId)
+  //console.log('fruit', asset)
   var totalPrice = 0
+  var extractTime = 0
   if (typeof asset !== "undefined"){
+    extractTime = asset.extractTime
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="width: 60px; padding-left: 5px;">' + getAssetName(e.extractId) + ' / ' + asset.extractTime +' Days</td><td style="padding: 0 5px 0 5px;">' + e.count +'</td><td> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3)
-        console.log(totalPrice)
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice('frf').market, getPrice('frf').price)).toFixed(3) + '</td></tr>')
+        totalPrice += parseFloat(e.count * getUsdPrice(getPrice('frf').market, getPrice('frf').price)).toFixed(3)
+        //console.log(totalPrice, extractTime)
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
   }
   else {
-    return ['', '']
+    return ['', 0, 0]
   }
 }
 
 
 function showCards(){
   $(currencies).each(function(i, e){
+      var daily_profit
+      var harvestTime
+      //console.log(e.id, getAssetTakes(e.id)[1], getAssetGives(e.id)[2])
+      //console.log(e.id, getFruitGives(e.id)[1], getFruitTakes(e.id)[1], getFruitGives(e.id)[2])
+      if (fruits.includes(e.id)){
+          harvestTime = getFruitGives(e.id)[2]
+          daily_profit = ((getFruitGives(e.id)[1] - getFruitTakes(e.id)[1]) / getFruitGives(e.id)[2]).toFixed(3).toString()
+        }
+      else {
+        if (getAssetGives(e.id)[2] > 0){
+          harvestTime = getAssetGives(e.id)[2]
+          daily_profit = (getAssetGives(e.id)[1] - (getAssetTakes(e.id)[1] / 7)).toFixed(3).toString()
+        }
+        else {
+          daily_profit = 0
+          harvestTime = 0
+        }
+      }
+      /*if (getAssetGives(e.id)[2] > 0){
+        harvestTime = getAssetGives(e.id)[2]
+        daily_profit = (getAssetGives(e.id)[1] - (getAssetTakes(e.id)[1] / 7)).toFixed(3).toString()
+      }
+      else if (getFruitGives(e.id)[2] > 0){
+        harvestTime = getFruitGives(e.id)[2]
+        daily_profit = ((getFruitGives(e.id)[1] - getFruitTakes(e.id)[1]) / getFruitGives(e.id)[2]).toFixed(3).toString()
+      }
+      else {
+        daily_profit = 0
+        harvestTime = 0
+      }*/
+
       var card = '<div class="col-6 col-xl-3 col-lg-3 col-md-3 col-sm-6 col-xs-6">' +
                   '<div class="card" aria-hidden="true">'+
                   ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
                   ' <div class="card-body"> ' +
                   '  <div><strong> Name: '  + e.name + '</strong></div> ' +
+                  '  <div class="input-group mb-3">' +
+                  '    <button class="btn btn-primary minus_btn" type="button" id="minus_' + e.id + '_btn">-</button>' +
+                  '    <span class="form-control text-center asset_input" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">0</span>' +
+                  '    <button class="btn btn-primary add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
+                  '  </div>' +
                   '  <div>Market price: ' + getPrice(e.id).price +' ' + getPrice(e.id).market + ' ($' + getUsdPrice(getPrice(e.id).market, getPrice(e.id).price)  + ')</div>' +
                   '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] +
-                  '    <div class="card-text" style="color: blue;"> Profit/Week: </div> $' + ((getAssetGives(e.id)[1] * 7) - getAssetTakes(e.id)[1]).toFixed(3).toString() + ((getFruitGives(e.id)[1] * 7) - getFruitTakes(e.id)[1]).toFixed(3).toString() +
+                  '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
+                  '    <div class="card-text" style="color: blue;"> Daily Profit: </div> $' + daily_profit +
                   '</div>' +
                 ' </div>' +
                 '</div>'
@@ -210,38 +275,22 @@ function showCards(){
     });
 };
 
+$(document).on('click', '.add_btn', function () {
+  var asset_val = parseInt($(this).siblings('.asset_input').text());
+  var asset_id = $(this).siblings('.asset_input').data('asset_id');
+  asset_val += 1
+  $(this).siblings('.asset_input').text(asset_val)
+  window.localStorage.setItem(asset_id, asset_val);
+});
 
-/*function getConfigData(asset_id, currencies) {
-  return configs.map(config => currencies.find(currency => config.assetId == asset_id))//.filter(Boolean)
-}*/
+$(document).on('click', '.minus_btn', function () {
+  var asset_val = parseInt($(this).siblings('.asset_input').text());
+  var asset_id = $(this).siblings('.asset_input').data('asset_id');
+  asset_val -= 1
+  $(this).siblings('.asset_input').text(asset_val)
+  window.localStorage.setItem(asset_id, asset_val);
+})
 
-
-/*function getCurrencies(){
-  $.ajax({
-    url: "https://api.cropbytes.com/api/v2/peatio/public/currencies",
-    context: 'application/json',
-    async: false
-  }).done(function(data) {
-    $(data).each(function(i, e){
-      var card = '<div class="col-6 col-xl-3 col-lg-3 col-md-3 col-sm-6 col-xs-6">' +
-                  '<div class="card" aria-hidden="true">'+
-                  ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
-                  ' <div class="card-body"> ' +
-                  '  <h5 class="card-title"> Name: '  + e.name + '</h5> ' +
-                  '    <p class="card-text"> Takes: ' + getConfigData(e.id, data) +' </p>'
-                  '      <span class="placeholder col-7">Takes: </span>' +
-                  '      <span class="placeholder col-4"></span> ' +
-                  '      <span class="placeholder col-4"></span> ' +
-                  '      <span class="placeholder col-6"></span> ' +
-                  '    </p> ' +
-                  '  <a href="#" tabindex="-1" class="btn btn-primary disabled placeholder col-6"></a> ' +
-                  '</div>' +
-                ' </div>' +
-                '</div>'
-      $('#items-container').append(card)
-    });
-  });
-}*/
 
 
 $(document).ready(function(){
@@ -251,6 +300,6 @@ $(document).ready(function(){
   getMarkets();
   showCards();
   /*setInterval(function() {
-    
+
   }, 300000);*/
 })
