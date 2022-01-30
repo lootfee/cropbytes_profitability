@@ -35,7 +35,8 @@
 }*/
 
 body {
-  font-size: 14px;
+  font-size: 8px !important;
+  font-family: Mochiy Pop P One, sans-serif !important;
 }
 
 .marquee{
