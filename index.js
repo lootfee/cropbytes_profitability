@@ -229,7 +229,17 @@ function getUsdPrice(market, price){
   else {
     return ''
   }
+}
 
+function getRoi(price, profit){
+    var roi = Math.floor(parseFloat(price)/parseFloat(profit))
+    console.log('profit', parseFloat(profit))
+    if (!isFinite(roi) | parseFloat(profit) < 0) {
+        return 0
+    }
+    else {
+        return roi
+    }
 }
 
 function getAssetTakes(assetId){
@@ -424,14 +434,7 @@ function showCards(){
           //console.log(getCropGives(e.id, e.cloneId)[1], getCropTakes(e.id, e.cloneId)[1], getCropGives(e.id, e.cloneId)[2])
           harvestTime = (getCropGives(e.id, e.cloneId)[2])
           daily_profit = (getCropGives(e.id, e.cloneId)[1] - getCropTakes(e.id, e.cloneId)[1]) / getCropGives(e.id, e.cloneId)[2]
-          /*if (e.cloneId ==  e.id + 'corn'){
-              harvestTime = (getCornGives(e.id)[2]).toFixed(3)
-              daily_profit = (getCornGives(e.id)[1] / getCornTakes(e.id)[2]).toFixed(3)
-          }
-          else if (e.cloneId ==  e.id + 'carrot'){
-              harvestTime = (getCarrotGives(e.id)[2]).toFixed(3)
-              daily_profit = (getCarrotGives(e.id)[1] / getCarrotTakes(e.id)[2]).toFixed(3)
-          }*/
+
       }
       else {
         if (getAssetGives(e.id)[2] > 0){
@@ -443,18 +446,7 @@ function showCards(){
           harvestTime = 0
         }
       }
-      /*if (getAssetGives(e.id)[2] > 0){
-        harvestTime = getAssetGives(e.id)[2]
-        daily_profit = (getAssetGives(e.id)[1] - (getAssetTakes(e.id)[1] / 7)).toFixed(3).toString()
-      }
-      else if (getFruitGives(e.id)[2] > 0){
-        harvestTime = getFruitGives(e.id)[2]
-        daily_profit = ((getFruitGives(e.id)[1] - getFruitTakes(e.id)[1]) / getFruitGives(e.id)[2]).toFixed(3).toString()
-      }
-      else {
-        daily_profit = 0
-        harvestTime = 0
-      }*/
+
       var item_qty
       if (cropLands.includes(e.id)){
         item_qty = window.localStorage.getItem(e.cloneId) || 0;
@@ -463,7 +455,7 @@ function showCards(){
         item_qty = window.localStorage.getItem(e.id) || 0;
       }
       //var item_qty = window.localStorage.getItem(e.id) || 0;
-      var card = '<div class="col-6 col-xl-3 col-lg-3 col-md-3 col-sm-6 col-xs-6">' +
+      var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6">' +
                   '<div class="card" aria-hidden="true">'+
                   ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
                   ' <div class="card-body"> ' +
@@ -477,7 +469,10 @@ function showCards(){
                   '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
-                  '    <div class="card-text" style="color: blue;"> Daily Profit: </div> $' + daily_profit.toFixed(3) +
+                  '    <div class="row">' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> $' + daily_profit.toFixed(3) + '</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(getUsdPrice(getPrice(e.id).market, getPrice(e.id).price), daily_profit) + ' days</div>' +
+                  '    </div>' +
                   '</div>' +
                 ' </div>' +
                 '</div>'
@@ -489,19 +484,21 @@ function updateSummary(){
     $('#assets-container').empty();
     $('#production-container').empty()
     $('#consumption-container').empty()
-    $('#profit-container').empty()
     var total_production = 0
     var total_consumption = 0
+    var total_assets = 0
     $.each(window.localStorage, function(i, e){
         if (i !== 'production' || i !== 'consumption'){
             if (window.localStorage.getItem(i) > 0){
                 if (cropLandsClone.includes(i)){
                     orig_i = i.slice(0, 3)
                     console.log('orig_i', i, orig_i)
-                    $('#assets-container').append('<div><span>' + getCropLandName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(orig_i).market, getPrice(orig_i).price)).toFixed(3) + ')</span></div>')
+                    $('#assets-container').append('<div class="asset_summary"><span>' + getCropLandName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(orig_i).market, getPrice(orig_i).price)).toFixed(3) + ')</span></div>')
+                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(getUsdPrice(getPrice(orig_i).market, getPrice(orig_i).price))
                 }
                 else {
-                    $('#assets-container').append('<div><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(i).market, getPrice(i).price)).toFixed(3) + ')</span></div>')
+                    $('#assets-container').append('<div class="asset_summary"><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(i).market, getPrice(i).price)).toFixed(3) + ')</span></div>')
+                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(getUsdPrice(getPrice(i).market, getPrice(i).price))
                 }
                 //$('#assets-container').append('<div><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(i).market, getPrice(i).price)).toFixed(3) + ')</span></div>')
             }
@@ -512,7 +509,7 @@ function updateSummary(){
         //console.log('tp', e.count, getPrice(e.assetId).market, getPrice(e.assetId).price)
         total_production += parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))
         if (e.count > 0.0001){
-            $('#production-container').append('<div><span>' + getAssetName(e.assetId) + ' = </span><span> ' + e.count.toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + ')</span></div>')
+            $('#production-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + e.count.toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + ')</span></div>')
         }
     })
     var consumption = JSON.parse(window.localStorage.getItem('consumption'))
@@ -520,12 +517,17 @@ function updateSummary(){
         console.log('price', e.assetId, parseFloat(e.count), getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price), parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)))
         total_consumption += parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))
         if (e.count > 0.0001){
-            $('#consumption-container').append('<div><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))).toFixed(3) + ')</span></div>')
+            $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))).toFixed(3) + ')</span></div>')
         }
     })
     console.log('tp', total_production, total_consumption)
-    var total_profit = parseFloat(parseFloat(total_production) - parseFloat(total_consumption)).toFixed(3)
-    $('#profit-container').append('<div> $ ' + total_profit + '</div>')
+    var daily_profit = parseFloat(parseFloat(total_production) - parseFloat(total_consumption))
+    $('#tdp').text('$ ' + total_production.toFixed(2))
+    $('#tdc').text('$ ' + total_consumption.toFixed(2))
+    $('#ta').text('$ ' + total_assets.toFixed(2))
+    $('#daily-profit').text('$ ' + daily_profit.toFixed(3))
+    $('#weekly-profit').text('$ ' + (daily_profit * 7).toFixed(2))
+    $('#monthly-profit').text('$ ' + (daily_profit * 30).toFixed(2))
 }
 
 
@@ -898,194 +900,7 @@ $(document).on('click', '.minus_btn', function () {
         $(this).siblings('.asset_input').text(asset_val)
     }
 
-    /*var asset_val = parseInt($(this).siblings('.asset_input').text());
-    var asset_id = $(this).siblings('.asset_input').data('asset_id');
-    var crop_type = $(this).siblings('.asset_input').data('crop_type');
-    asset_val -= 1
-    if (asset_val > -1){
-        $(this).siblings('.asset_input').text(asset_val)
-        if (crop_type !== "undefined"){
-            window.localStorage.setItem(crop_type, asset_val);
-        }
-        else {
-            window.localStorage.setItem(asset_id, asset_val);
-        }
-        var production = JSON.parse(window.localStorage.getItem('production')) || [];
-        var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-        if (fruits.includes(asset_id)){
-            var fruit_asset = fruitConfigs.find(config => config.assetId == asset_id)
-            if (typeof fruit_asset !== "undefined"){
-                if (fruit_asset.takes.length > 0){
-                    $(fruit_asset.takes).each(function(i, e){
-                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
-                        if (cons_item){
-                            cons_item.count -= parseFloat(parseFloat(e.count/fruit_asset.extractTime).toFixed(3))
-                        }
-                        else {
-                            consumption.push({assetId: e.assetId, count:
-                            parseFloat(parseFloat(e.count/fruit_asset.extractTime).toFixed(3))})
-                        }
-                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
-                    });
-                }
-
-                if (fruit_asset.gives.length > 0){
-                    $(fruit_asset.gives).each(function(i, e){
-                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
-                        var prod_item = production.find(prod_item => prod_item.assetId == 'frf')
-                        if (prod_item){
-                            prod_item.count -= parseFloat(parseFloat(e.count/fruit_asset.extractTime).toFixed(3))
-                        }
-                        else {
-                            production.push({assetId: 'frf', count: parseFloat(parseFloat(e.count/fruit_asset.extractTime).toFixed(3))})
-                        }
-                        window.localStorage.setItem('production', JSON.stringify(production));
-                    });
-                }
-            }
-        }
-        else if (cropLands.includes(asset_id)){
-            var crop_type = $(this).siblings('.asset_input').data('crop_type');
-            if (crop_type == asset_id + 'corn'){
-                var corn_asset = cropConfigs.corn.find(config => config.assetId == asset_id)
-                if (typeof corn_asset !== "undefined"){
-                    if (corn_asset.takes.length > 0){
-                        $(corn_asset.takes).each(function(i, e){
-                            //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-                            var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
-                            if (cons_item){
-                                cons_item.count -= parseFloat(parseFloat(e.count/corn_asset.extractTime).toFixed(3))
-                            }
-                            else {
-                                consumption.push({assetId: e.assetId, count: parseFloat((e.count/corn_asset.extractTime).toFixed(2))})
-                            }
-                            window.localStorage.setItem('consumption', JSON.stringify(consumption));
-                        });
-                    }
-
-                    if (corn_asset.gives.length > 0){
-                        $(corn_asset.gives).each(function(i, e){
-                            //var production = JSON.parse(window.localStorage.getItem('production')) || [];
-                            var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
-                            if (prod_item){
-                                prod_item.count -= parseFloat(parseFloat(e.count/corn_asset.extractTime).toFixed(3))
-                            }
-                            else {
-                                production.push({assetId: e.extractId, count: parseFloat(parseFloat(e.count/corn_asset.extractTime).toFixed(3))})
-                            }
-                            window.localStorage.setItem('production', JSON.stringify(production));
-                        });
-                    }
-                }
-            }
-            else if (crop_type == asset_id + 'carrot'){
-                var carrot_asset = cropConfigs.carrot.find(config => config.assetId == asset_id)
-                if (typeof carrot_asset !== "undefined"){
-                    if (carrot_asset.takes.length > 0){
-                        $(carrot_asset.takes).each(function(i, e){
-                            //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-                            var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
-                            if (cons_item){
-                                cons_item.count -= parseFloat(parseFloat(e.count/carrot_asset.extractTime).toFixed(2))
-                            }
-                            else {
-                                consumption.push({assetId: e.assetId, count: parseFloat(parseFloat(e.count/carrot_asset.extractTime).toFixed(2))})
-                            }
-                            window.localStorage.setItem('consumption', JSON.stringify(consumption));
-                        });
-                    }
-
-                    if (carrot_asset.gives.length > 0){
-                        $(carrot_asset.gives).each(function(i, e){
-                            //var production = JSON.parse(window.localStorage.getItem('production')) || [];
-                            var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
-                            if (prod_item){
-                                prod_item.count -= parseFloat(parseFloat(e.count/carrot_asset.extractTime).toFixed(3))
-                            }
-                            else {
-                                production.push({assetId: e.extractId, count: parseFloat(parseFloat(e.count/carrot_asset.extractTime).toFixed(3))})
-                            }
-                            window.localStorage.setItem('production', JSON.stringify(production));
-                        });
-                    }
-                }
-            }
-        }
-        else if (wells.includes(asset_id)){
-            var well_asset = wellConfigs.find(config => config.assetId == asset_id)
-            if (typeof well_asset !== "undefined"){
-                if (well_asset.gives.length > 0){
-                    $(well_asset.gives).each(function(i, e){
-                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
-                        var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
-                        console.log(prod_item, production)
-                        if (prod_item){
-                            prod_item.count -= parseFloat(parseFloat(e.count/well_asset.extractTime).toFixed(3))
-                        }
-                        else {
-                            production.push({assetId: e.assetId, count: parseFloat(parseFloat(e.count/well_asset.extractTime).toFixed(3))})
-                        }
-                        window.localStorage.setItem('production', JSON.stringify(production));
-                    });
-                }
-            }
-        }
-        else {
-            var feed_asset = feedConfigs.find(config => config.assetId == asset_id)
-            if (typeof feed_asset !== "undefined"){
-                if (feed_asset.takes.other.length > 0){
-                    $(feed_asset.takes.other).each(function(i, e){
-                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
-                        if (cons_item){
-                            cons_item.count -= parseFloat(parseFloat(e.count).toFixed(3))
-                        }
-                        else {
-                            consumption.push({assetId: e.assetId, count: parseFloat(parseFloat(e.count).toFixed(3))})
-                        }
-                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
-                    });
-                }
-                if (feed_asset.takes.sun.length > 0){
-                    $(feed_asset.takes.sun).each(function(i, e){
-                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
-                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
-                        if (cons_item){
-                            cons_item.count -= parseFloat(parseFloat(e.count/7).toFixed(3))
-                        }
-                        else {
-                            consumption.push({assetId: e.assetId, count: parseFloat(parseFloat(e.count/7).toFixed(3))})
-                        }
-                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
-                    });
-                }
-
-                if (feed_asset.gives.length > 0){
-                    $(feed_asset.gives).each(function(i, e){
-                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
-                        var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
-                        if (prod_item){
-                            prod_item.count -= parseFloat(parseFloat(e.count / feed_asset.extractTime).toFixed(3))
-                        }
-                        else {
-                            production.push({assetId: e.extractId, count: parseFloat(parseFloat(e.count / feed_asset.extractTime).toFixed(3))})
-                        }
-                        window.localStorage.setItem('production', JSON.stringify(production));
-                    });
-                }
-            }
-        }
-        updateSummary();
-    }
-    else {
-        asset_val = 0
-        $(this).siblings('.asset_input').text(asset_val)
-    }*/
-
 })
-
-
 
 $(document).ready(function(){
   getConfigs();
@@ -1097,4 +912,17 @@ $(document).ready(function(){
   /*setInterval(function() {
 
   }, 300000);*/
+});
+
+$('.summary_btn').click(function(){
+    if ($('.asset_summary').is(':visible')){
+        $('.asset_summary').css('display', 'none')
+        $('#summary_down_btn').css('display', 'none')
+        $('#summary_up_btn').css('display', 'block')
+    }
+    else {
+        $('.asset_summary').css('display', 'block')
+        $('#summary_down_btn').css('display', 'block')
+        $('#summary_up_btn').css('display', 'none')
+    }
 })
