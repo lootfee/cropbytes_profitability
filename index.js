@@ -1,3 +1,29 @@
+var extracts = ['milk', 'egg', 'trf', 'wool', 'hhr', 'ftr', 'fur', 'pow']
+var extractsMiningRequirements = {
+'milk': 4, 'egg': 8, 'trf': 3, 'wool': 6, 'hhr': 1, 'ftr': 1, 'fur': 2, 'pow': 1
+}
+
+var miningDif
+function getMiningDif(){
+  $.ajax({
+    url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+      miningDif = data.data.difficulty
+      console.log('miningDif', miningDif)
+    });
+}
+
+function getMiningVsExchange(extract_id){
+    var market_price = getPrice(extract_id).price
+    var extract_conversion_rate = extractsMiningRequirements[extract_id]
+
+    var mining_return = extract_conversion_rate * miningDif
+    var exchange_return = 1 / market_price
+    return {'mining_return': mining_return, 'exchange_return': exchange_return}
+}
+
 var wells = ['sw', 'well', 'lake']
 var wellConfigs = [
 {
@@ -210,6 +236,21 @@ function getPrice(assetId){
 
 }
 
+
+function getFiatDefault(){
+    var fiat = window.localStorage.getItem('fiat_default')
+    var fiat_conversion
+    $.ajax({
+        url: "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies/usd/" + fiat + ".json",
+        context: 'application/json',
+        async: false
+      }).done(function(data) {
+          fiat_conversion =  data[fiat]
+    });
+    return fiat_conversion
+}
+
+
 function getUsdPrice(market, price){
   if (typeof market !== "undefined" || typeof price !== "undefined"){
     if (market == 'usdt'){
@@ -218,6 +259,11 @@ function getUsdPrice(market, price){
     else {
       var marketUsdPrice = getPrice(market).price
       var usd_price = (parseFloat(marketUsdPrice) * parseFloat(price)).toFixed(3)
+      var fiat_default = window.localStorage.getItem('fiat_default')
+      console.log('fiat_default', getFiatDefault())
+      if (fiat_default !== 'usd'){
+        usd_price = parseFloat(usd_price) * getFiatDefault()
+      }
       if (isNaN(usd_price)){
         return ''
       }
@@ -232,8 +278,7 @@ function getUsdPrice(market, price){
 }
 
 function getRoi(price, profit){
-    var roi = Math.floor(parseFloat(price)/parseFloat(profit))
-    console.log('profit', parseFloat(profit))
+    var roi = ~~(parseFloat(price)/parseFloat(profit))
     if (!isFinite(roi) | parseFloat(profit) < 0) {
         return 0
     }
@@ -246,19 +291,24 @@ function getAssetTakes(assetId){
   var takes_cont = $('<table></table>')
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
+
   if (typeof asset !== "undefined"){
     if (asset.takes.other.length > 0){
       $(takes_cont).append('<tr><th colspan="3">Mon-Sat:</th></tr>');
       $(asset.takes.other).each(function(i, e){
-        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += (6 * (parseFloat(e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))))
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() + '</td></tr>')
+        totalPrice += (6 * (parseFloat(e.count * usd_price)))
       });
     }
     if (asset.takes.sun.length > 0){
       $(takes_cont).append('<tr><th colspan="3">Sun:</th></tr>');
       $(asset.takes.sun).each(function(i, e){
-        $(takes_cont).append('<tr><td style="padding:0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat(e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(takes_cont).append('<tr><td style="padding:0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
+        totalPrice += parseFloat(e.count * usd_price)
       });
     }
     return [takes_cont.prop('outerHTML'), totalPrice]
@@ -278,8 +328,10 @@ function getAssetGives(assetId){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price))
+        var item_market_price = getPrice(e.extractId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
+        totalPrice += (e.count * usd_price)
       });
     }
     return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
@@ -297,9 +349,11 @@ function getFruitTakes(assetId){
     if (asset.takes.length > 0){
       //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
       $(asset.takes).each(function(i, e){
-        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         //$(takes_cont).append('<tr><td colspan="3">Grinding fee: 0.01 trx/crop</td></tr>')
-        totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)))
+        totalPrice += parseFloat(e.count * usd_price)
         //(parseFloat((0.01 * e.count) * getUsdPrice('usdt', getPrice('trx').price)) - if include grinding fee
       });
     }
@@ -319,8 +373,10 @@ function getFruitGives(assetId){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice('frf').market, getPrice('frf').price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat(e.count * getUsdPrice(getPrice('frf').market, getPrice('frf').price))
+        var item_market_price = getPrice('frf')
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
+        totalPrice += parseFloat(e.count * usd_price)
       });
     }
     return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
@@ -340,8 +396,10 @@ function getWellGives(assetId){
     extractTime = Math.round((asset.extractTime + Number.EPSILON) * 100) / 100
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat(e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price))
+        var item_market_price = getPrice(e.extractId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
+        totalPrice += parseFloat(e.count * usd_price)
       });
     }
     return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
@@ -371,9 +429,11 @@ function getCropTakes(assetId, cloneId){
     if (asset.takes.length > 0){
       //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
       $(asset.takes).each(function(i, e){
-        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + '</td></tr>')
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         //$(takes_cont).append('<tr><td colspan="3">Grinding fee: 0.01 trx/crop</td></tr>')
-        totalPrice += parseFloat((e.count * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)))
+        totalPrice += parseFloat(e.count * usd_price)
         // (parseFloat((grindingFee * e.count) * getUsdPrice('usdt', getPrice('trx').price)) if include grinding fee
       });
     }
@@ -402,8 +462,10 @@ function getCropGives(assetId, cloneId){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
       $(asset.gives).each(function(i, e){
-        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> $' + (e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price)).toFixed(3) + '</td></tr>')
-        totalPrice += parseFloat(e.count * getUsdPrice(getPrice(e.extractId).market, getPrice(e.extractId).price))
+        var item_market_price = getPrice(e.extractId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
+        totalPrice += parseFloat(e.count * usd_price)
         //console.log(totalPrice, extractTime)
       });
     }
@@ -420,6 +482,8 @@ function showCards(){
   $(currencies).each(function(i, e){
       var daily_profit
       var harvestTime
+      var item_market_price = getPrice(e.id)
+      var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
       //console.log(e.id, getAssetTakes(e.id)[1], getAssetGives(e.id)[2])
       //console.log(e.id, getFruitGives(e.id)[1], getFruitTakes(e.id)[1], getFruitGives(e.id)[2])
       if (fruits.includes(e.id)){
@@ -454,6 +518,30 @@ function showCards(){
       else {
         item_qty = window.localStorage.getItem(e.id) || 0;
       }
+      var mining_v_exchange = getMiningVsExchange(e.id)
+      var mining_return_color = {}
+      if (mining_v_exchange.mining_return > mining_v_exchange.exchange_return){
+        mining_return_color = {'mining': 'blue', 'exchange': 'red'}
+      }
+      else {
+        mining_return_color = {'mining': 'red', 'exchange': 'blue'}
+      }
+      var card_body
+      if (extracts.includes(e.id)){
+        card_body = '    <div class="row">' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.mining + ';">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(1) + ' ' + e.id +  '/ 1 cbx</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.exchange + ';">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
+                  '    </div>'
+      }
+      else {
+        card_body = '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
+                  '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
+                  '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
+                  '    <div class="row">' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(usd_price, daily_profit) + ' days</div>' +
+                  '    </div>'
+      }
       //var item_qty = window.localStorage.getItem(e.id) || 0;
       var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6">' +
                   '<div class="card" aria-hidden="true">'+
@@ -465,14 +553,15 @@ function showCards(){
                   '    <span class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">' + item_qty + '</span>' +
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
-                  '  <div>' + getPrice(e.id).type + ' price: ' + getPrice(e.id).price +' ' + getPrice(e.id).market + ' ($' + getUsdPrice(getPrice(e.id).market, getPrice(e.id).price)  + ')</div>' +
-                  '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
+                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ')</div>' +
+                  ' ' + card_body +
+                  /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
                   '    <div class="row">' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> $' + daily_profit.toFixed(3) + '</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(getUsdPrice(getPrice(e.id).market, getPrice(e.id).price), daily_profit) + ' days</div>' +
-                  '    </div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(usd_price, daily_profit) + ' days</div>' +
+                  '    </div>' +*/
                   '</div>' +
                 ' </div>' +
                 '</div>'
@@ -491,14 +580,18 @@ function updateSummary(){
         if (i !== 'production' || i !== 'consumption'){
             if (window.localStorage.getItem(i) > 0){
                 if (cropLandsClone.includes(i)){
-                    orig_i = i.slice(0, 3)
+                    var orig_i = i.slice(0, 3)
+                    var item_market_price = getPrice(orig_i)
+                    var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
                     console.log('orig_i', i, orig_i)
-                    $('#assets-container').append('<div class="asset_summary"><span>' + getCropLandName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(orig_i).market, getPrice(orig_i).price)).toFixed(3) + ')</span></div>')
-                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(getUsdPrice(getPrice(orig_i).market, getPrice(orig_i).price))
+                    $('#assets-container').append('<div class="asset_summary"><span>' + getCropLandName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>(' + (window.localStorage.getItem(i) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
+                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(usd_price)
                 }
                 else {
-                    $('#assets-container').append('<div class="asset_summary"><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(i).market, getPrice(i).price)).toFixed(3) + ')</span></div>')
-                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(getUsdPrice(getPrice(i).market, getPrice(i).price))
+                    var item_market_price = getPrice(i)
+                    var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+                    $('#assets-container').append('<div class="asset_summary"><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>(' + (window.localStorage.getItem(i) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
+                    total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(usd_price)
                 }
                 //$('#assets-container').append('<div><span>' + getAssetName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>($' + (window.localStorage.getItem(i) * getUsdPrice(getPrice(i).market, getPrice(i).price)).toFixed(3) + ')</span></div>')
             }
@@ -506,18 +599,20 @@ function updateSummary(){
     })
     var production = JSON.parse(window.localStorage.getItem('production'))
     $.each(production, function(i, e){
-        //console.log('tp', e.count, getPrice(e.assetId).market, getPrice(e.assetId).price)
-        total_production += parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        total_production += parseFloat(e.count) * parseFloat(usd_price)
         if (e.count > 0.0001){
-            $('#production-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + e.count.toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)).toFixed(3) + ')</span></div>')
+            $('#production-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + e.count.toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
         }
     })
     var consumption = JSON.parse(window.localStorage.getItem('consumption'))
     $.each(consumption, function(i, e){
-        console.log('price', e.assetId, parseFloat(e.count), getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price), parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price)))
-        total_consumption += parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))
+        var item_market_price = getPrice(e.assetId)
+        var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+        total_consumption += parseFloat(e.count) * parseFloat(usd_price)
         if (e.count > 0.0001){
-            $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> ($' + (parseFloat(e.count) * parseFloat(getUsdPrice(getPrice(e.assetId).market, getPrice(e.assetId).price))).toFixed(3) + ')</span></div>')
+            $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * parseFloat(usd_price)).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
         }
     })
     console.log('tp', total_production, total_consumption)
@@ -907,6 +1002,8 @@ $(document).ready(function(){
   getCurrencies();
   getTickers()
   getMarkets();
+  getMiningDif()
+  getFiats();
   showCards();
   updateSummary();
   /*setInterval(function() {
@@ -925,4 +1022,40 @@ $('.summary_btn').click(function(){
         $('#summary_down_btn').css('display', 'block')
         $('#summary_up_btn').css('display', 'none')
     }
+});
+
+var fiat_default
+var fiatCurrencies
+function getFiats(){
+  $.ajax({
+    url: "https://cdn.jsdelivr.net/gh/fawazahmed0/currency-api@1/latest/currencies.json",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+      fiatCurrencies = data
+      $.each(data, function(i, e){
+      console.log(i, e)
+        $('#currency_select').append($('<option>', {
+            value: i,
+            text : i.toUpperCase()
+        }));
+      });
+    });
+    if (window.localStorage.hasOwnProperty('fiat_default')){
+        fiat_default = window.localStorage.getItem('fiat_default')
+        $('#currency_select').val(fiat_default)
+        $("#currency_select option[value='" + fiat_default + "']").prop('selected', true);
+    }
+    else {
+        window.localStorage.setItem('fiat_default', 'usd')
+        $('#currency_select').val('usd')
+         $("#currency_select option[value='usd']").prop('selected', true);
+    }
+
+}
+
+$('#currency_select').change(function(){
+    window.localStorage.setItem('fiat_default', $(this).val())
+    window.location.reload()
 })
+

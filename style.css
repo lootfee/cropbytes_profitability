@@ -77,6 +77,12 @@ body {
     display: none;
 }
 
+#filters-container {
+    position: fixed;
+    width: 100%;
+    z-index: 100;
+}
+
 @media only screen and (max-width: 500px) {
 
    body {
