@@ -617,12 +617,12 @@ function updateSummary(){
     })
     console.log('tp', total_production, total_consumption)
     var daily_profit = parseFloat(parseFloat(total_production) - parseFloat(total_consumption))
-    $('#tdp').text('$ ' + total_production.toFixed(2))
-    $('#tdc').text('$ ' + total_consumption.toFixed(2))
-    $('#ta').text('$ ' + total_assets.toFixed(2))
-    $('#daily-profit').text('$ ' + daily_profit.toFixed(3))
-    $('#weekly-profit').text('$ ' + (daily_profit * 7).toFixed(2))
-    $('#monthly-profit').text('$ ' + (daily_profit * 30).toFixed(2))
+    $('#tdp').text(' ' + total_production.toFixed(2) + ' ' + fiat_default.toUpperCase())
+    $('#tdc').text(' ' + total_consumption.toFixed(2) + ' ' + fiat_default.toUpperCase() )
+    $('#ta').text(' ' + total_assets.toFixed(2) + ' ' + fiat_default.toUpperCase() )
+    $('#daily-profit').text(' ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() )
+    $('#weekly-profit').text(' ' + (daily_profit * 7).toFixed(2) + ' ' + fiat_default.toUpperCase() )
+    $('#monthly-profit').text(' ' + (daily_profit * 30).toFixed(2) + ' ' + fiat_default.toUpperCase() )
 }
 
 
@@ -998,12 +998,12 @@ $(document).on('click', '.minus_btn', function () {
 })
 
 $(document).ready(function(){
+  getFiats();
   getConfigs();
   getCurrencies();
   getTickers()
   getMarkets();
   getMiningDif()
-  getFiats();
   showCards();
   updateSummary();
   /*setInterval(function() {
