@@ -196,6 +196,173 @@ function getMarkets(){
     });
 }
 
+var unixCurrentTime = Math.round(+new Date()/1000)
+
+var cbxTradesArr
+function getCbxTrades(){
+  cbxTradesArr = {}
+  $.ajax({
+    url: "https://api.cropbytes.com/api/v2/peatio/public/markets/cbxusdt/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+    $(data).each(function(i, e){
+    var dataDate = new Date((e[0])*1000)
+    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    cbxTradesArr[dictKey] = e[1]
+    /*var newDict = {}*/
+    /*newDict['"' + dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate() + '"'] = e[1]
+    cbxTradesArr.push(newDict)*/
+    })
+    });
+    return cbxTradesArr
+}
+
+var trxTradesArr
+function getTrxTrades(){
+  trxTradesArr = {}
+  $.ajax({
+    url: "https://api.cropbytes.com/api/v2/peatio/public/markets/trxusdt/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+    $(data).each(function(i, e){
+    var dataDate = new Date((e[0])*1000)
+    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    trxTradesArr[dictKey] = e[1]
+    /*var newDict = {}
+    newDict['"' + dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate() + '"'] = e[1]
+    trxTradesArr.push(newDict)*/
+    })
+
+    });
+    return trxTradesArr
+}
+
+var assetUsdTradesArr
+var assetTradesArr
+function getAssetTrades(assetId, marketId){
+  assetTradesArr = []
+  assetUsdTradesArr = []
+  var assetMarketTrades
+  if (marketId === 'trx'){
+    assetMarketTrades = trxTradesArr
+  }
+  else if (marketId === 'cbx'){
+    assetMarketTrades = cbxTradesArr
+  }
+  console.log('assetMarketTrades', assetMarketTrades)
+  $.ajax({
+    url: "https://api.cropbytes.com/api/v2/peatio/public/markets/" + assetId + marketId +"/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+    $(data).each(function(i, e){
+    var dataDate = new Date((e[0])*1000)
+    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    console.log('assetMarketTrades', assetMarketTrades["2022-2-11"], dictKey)
+    var amtVal = assetMarketTrades[dictKey]
+    var usdVal = amtVal * e[1]
+    assetTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: e[1] })
+    assetUsdTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: usdVal })
+    })
+  });
+  return [assetTradesArr, assetUsdTradesArr]
+}
+
+function showChart(assetId, assetMarketId, chartWidth){
+
+    var assetTrades =  getAssetTrades(assetId, assetMarketId)[0]
+    var assetUsdTrades =  getAssetTrades(assetId, assetMarketId)[1]
+    var chart = LightweightCharts.createChart('chartContainer', {
+      width: chartWidth,
+      height: 300,
+        rightPriceScale: {
+            visible: true,
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        leftPriceScale: {
+            visible: true,
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        layout: {
+            backgroundColor: '#100841',
+		    textColor: '#ffffff',
+        },
+      grid: {
+        vertLines: {
+			color: 'rgba(197, 203, 206, 0.4)',
+			style: LightweightCharts.LineStyle.Dotted,
+		},
+		horzLines: {
+			color: 'rgba(197, 203, 206, 0.4)',
+			style: LightweightCharts.LineStyle.Dotted,
+		},
+      },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        timeScale: {
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        handleScroll: {
+            vertTouchDrag: false,
+        },
+    });
+    var marketSeries = chart.addLineSeries({
+      color: 'rgba(67, 83, 254, 1)',
+      lineWidth: 2,
+      priceScaleId: 'right'
+    });
+
+    var usdSeries = chart.addLineSeries({
+      color: 'rgba(255, 192, 0, 1)',
+      lineWidth: 2,
+      priceScaleId: 'left'
+    });
+
+    marketSeries.setData(assetTrades)
+    usdSeries.setData(assetUsdTrades)
+    /*chart.addLineSeries({
+        color: 'rgba(4, 111, 232, 1)',
+        lineWidth: 2,
+    }).setData(assetTrades)*/
+    chart.timeScale().fitContent();
+
+    $('#chartContainer').css('position', 'relative')
+
+    var legend = document.createElement('div');
+    legend.classList.add('chartLegend');
+    $('#chartContainer').append(legend);
+
+    var firstRow = document.createElement('div');
+    firstRow.innerText = assetId.toUpperCase() +  '/' + assetMarketId.toUpperCase();
+    firstRow.style.color = 'rgba(67, 83, 254, 1)';
+    legend.appendChild(firstRow);
+
+    var secondRow = document.createElement('div');
+    secondRow.innerText = assetId.toUpperCase() +  '/USD';
+    secondRow.style.color = 'rgba(255, 192, 0, 1)';
+    legend.appendChild(secondRow);
+}
+
+var chartsModal = document.getElementById('chartsModal')
+$('#chartsModal').on('show.bs.modal', function (event) {
+  var assetMarket = ''
+  var assetID = ''
+  var modalTitle = ''
+  var button = event.relatedTarget
+  assetID = button.getAttribute('data-bs-asset_id')
+  assetMarket = button.getAttribute('data-bs-market')
+  $(this).find('#chartContainer').empty()
+  $('#chartsModal').on('shown.bs.modal', function () {
+    $('#chartContainer').empty()
+    showChart(assetID, assetMarket, $('#chartContainer').width())
+});
+})
+
+
+
 function getAssetName(assetId){
   var asset = currencies.find(currency => currency.id == assetId)
   if (typeof asset !== "undefined"){
@@ -291,15 +458,16 @@ function getAssetTakes(assetId){
   var takes_cont = $('<table></table>')
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
-
+  var feedTime = 0
   if (typeof asset !== "undefined"){
+    feedTime = asset.feedTime
     if (asset.takes.other.length > 0){
       $(takes_cont).append('<tr><th colspan="3">Mon-Sat:</th></tr>');
       $(asset.takes.other).each(function(i, e){
         var item_market_price = getPrice(e.assetId)
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() + '</td></tr>')
-        totalPrice += (6 * (parseFloat(e.count * usd_price)))
+        totalPrice += ((6/feedTime) * (parseFloat(e.count * usd_price)))
       });
     }
     if (asset.takes.sun.length > 0){
@@ -311,7 +479,7 @@ function getAssetTakes(assetId){
         totalPrice += parseFloat(e.count * usd_price)
       });
     }
-    return [takes_cont.prop('outerHTML'), totalPrice]
+    return [takes_cont.prop('outerHTML'), totalPrice, feedTime]
   }
   else {
     return ['', 0]
@@ -482,6 +650,7 @@ function showCards(){
   $(currencies).each(function(i, e){
       var daily_profit
       var harvestTime
+      var feedTime
       var item_market_price = getPrice(e.id)
       var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
       //console.log(e.id, getAssetTakes(e.id)[1], getAssetGives(e.id)[2])
@@ -502,12 +671,14 @@ function showCards(){
       }
       else {
         if (getAssetGives(e.id)[2] > 0){
+          feedTime = getAssetTakes(e.id)[2]
           harvestTime = getAssetGives(e.id)[2]
-          daily_profit = (getAssetGives(e.id)[1] - (getAssetTakes(e.id)[1] / 7))
+          daily_profit = ((getAssetGives(e.id)[1] * (7/harvestTime)) - getAssetTakes(e.id)[1]) / 7
         }
         else {
           daily_profit = 0
           harvestTime = 0
+          feedTime = 0
         }
       }
 
@@ -534,9 +705,12 @@ function showCards(){
                   '    </div>'
       }
       else {
-        card_body = '    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
+        card_body = '  <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
-                  '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
+                  '    <div class="row">' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Feed Time: </div> ' + feedTime +  ' days</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Harvest Time: </div>' + harvestTime + ' days</div>' +
+                  '    </div>' +
                   '    <div class="row">' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(usd_price, daily_profit) + ' days</div>' +
@@ -553,7 +727,7 @@ function showCards(){
                   '    <span class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">' + item_qty + '</span>' +
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
-                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ')</div>' +
+                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
                   ' ' + card_body +
                   /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
@@ -1006,6 +1180,8 @@ $(document).ready(function(){
   getMiningDif()
   showCards();
   updateSummary();
+  getCbxTrades()
+  getTrxTrades()
   /*setInterval(function() {
 
   }, 300000);*/
@@ -1034,7 +1210,6 @@ function getFiats(){
   }).done(function(data) {
       fiatCurrencies = data
       $.each(data, function(i, e){
-      console.log(i, e)
         $('#currency_select').append($('<option>', {
             value: i,
             text : i.toUpperCase()
@@ -1048,6 +1223,7 @@ function getFiats(){
     }
     else {
         window.localStorage.setItem('fiat_default', 'usd')
+        fiat_default = window.localStorage.getItem('fiat_default')
         $('#currency_select').val('usd')
          $("#currency_select option[value='usd']").prop('selected', true);
     }
