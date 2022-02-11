@@ -251,7 +251,7 @@ function getAssetTrades(assetId, marketId){
   else if (marketId === 'cbx'){
     assetMarketTrades = cbxTradesArr
   }
-  console.log('assetMarketTrades', assetMarketTrades)
+
   $.ajax({
     url: "https://api.cropbytes.com/api/v2/peatio/public/markets/" + assetId + marketId +"/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
     context: 'application/json',
@@ -260,11 +260,15 @@ function getAssetTrades(assetId, marketId){
     $(data).each(function(i, e){
     var dataDate = new Date((e[0])*1000)
     var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
-    console.log('assetMarketTrades', assetMarketTrades["2022-2-11"], dictKey)
-    var amtVal = assetMarketTrades[dictKey]
-    var usdVal = amtVal * e[1]
+
+    if (!['trx', 'cbx'].includes(assetId)){
+        var amtVal = assetMarketTrades[dictKey]
+        var usdVal = amtVal * e[1]
+        assetUsdTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: usdVal })
+    }
+
     assetTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: e[1] })
-    assetUsdTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: usdVal })
+
     })
   });
   return [assetTradesArr, assetUsdTradesArr]
@@ -340,10 +344,13 @@ function showChart(assetId, assetMarketId, chartWidth){
     firstRow.style.color = 'rgba(67, 83, 254, 1)';
     legend.appendChild(firstRow);
 
-    var secondRow = document.createElement('div');
-    secondRow.innerText = assetId.toUpperCase() +  '/USD';
-    secondRow.style.color = 'rgba(255, 192, 0, 1)';
-    legend.appendChild(secondRow);
+    if (!['trx', 'cbx'].includes(assetId)){
+        var secondRow = document.createElement('div');
+        secondRow.innerText = assetId.toUpperCase() +  '/USD';
+        secondRow.style.color = 'rgba(255, 192, 0, 1)';
+        legend.appendChild(secondRow);
+    }
+
 }
 
 var chartsModal = document.getElementById('chartsModal')
