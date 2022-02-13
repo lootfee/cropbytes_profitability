@@ -28,20 +28,28 @@
           <label for="currency_select">Currency</label>
           <select id="currency_select"></select>
         </div>
+        <div class="col-7 col-xl-3 col-lg-3 col-md-3 col-sm-7 col-xs-7">
+          <label>Curr. Diff: <span id="current_diff"> </span></label>
+          <label style="margin-left: 10px">Est. Next Diff: <span id="next_diff"> </span></label>
+        </div>
+        <div class="col-5 col-xl-2 col-lg-2 col-md-2 col-sm-5 col-xs-5">
+
+        </div>
+      </div>
+      <div class="text-center loadingCont">
+        <div class="spinner-grow text-danger" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="spinner-grow text-warning" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
       </div>
       <div class="row"  id="items-container"></div>
     </div>
-    <div class="text-center" style="margin-top: 20vh;">
-      <div class="spinner-grow text-danger" style="width: 3rem; height: 3rem;" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <div class="spinner-grow text-warning" style="width: 3rem; height: 3rem;" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-      <div class="spinner-grow text-primary" style="width: 3rem; height: 3rem;" role="status">
-        <span class="visually-hidden">Loading...</span>
-      </div>
-    </div>
+
 
     <div class="container-fluid fixed-bottom bg-primary" id="summary_container" style="padding: 15px;">
         <div id="summary_btn_container" style="float: right;">
@@ -87,6 +95,7 @@
           </div>
           <div class="modal-body" style="padding: 0;">
             <div class="text-center" id="chartContainer"></div>
+            <div class="text-center" id="pcChartContainer"></div>
           </div>
           <!--<div class="modal-footer">
             <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>

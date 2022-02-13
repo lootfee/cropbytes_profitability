@@ -3,7 +3,41 @@ var extractsMiningRequirements = {
 'milk': 4, 'egg': 8, 'trf': 3, 'wool': 6, 'hhr': 1, 'ftr': 1, 'fur': 2, 'pow': 1
 }
 
+est_mining_supply = {
+1: 974934,
+2: 1949867,
+3: 2924801,
+4: 3899735,
+5: 4874668,
+6: 5849601,
+7:	6824535,
+8:	7799468,
+9:	8774402,
+10:	9749335,
+11:	10686038,
+12:	11622739,
+13:	12559440,
+14:	13496141,
+15:	14432842,
+16:	15369543,
+17:	16306244,
+18:	17242945,
+19:	18179646,
+20:	19116347,
+21:	20033931,
+22:	20951516,
+23:	21869101,
+24:	22786686,
+25:	23704271,
+26:	24621856,
+27:	25539441,
+28:	26457026,
+29:	27374611,
+30:	28292196
+}
+
 var miningDif
+var nextEstDiff
 function getMiningDif(){
   $.ajax({
     url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
@@ -11,7 +45,9 @@ function getMiningDif(){
     async: false
   }).done(function(data) {
       miningDif = data.data.difficulty
-      console.log('miningDif', miningDif)
+      nextEstDiff = parseFloat((data.data.totalMine / est_mining_supply[data.data.week]) ** 5).toFixed(2)
+      $('#current_diff').text(miningDif)
+      $('#next_diff').text(nextEstDiff)
     });
 }
 
@@ -21,10 +57,11 @@ function getMiningVsExchange(extract_id){
 
     var mining_return = extract_conversion_rate * miningDif
     var exchange_return = 1 / market_price
-    return {'mining_return': mining_return, 'exchange_return': exchange_return}
+    var next_mining_return = extract_conversion_rate * nextEstDiff
+    return {'mining_return': mining_return, 'exchange_return': exchange_return, 'next_mining_return': next_mining_return}
 }
 
-var wells = ['sw', 'well', 'lake']
+var wells = ['sw', 'well', 'lake', 'wtw', 'spw']
 var wellConfigs = [
 {
     assetId: 'sw',
@@ -43,8 +80,21 @@ var wellConfigs = [
     takes: [],
     gives: [{extractId: 'water', count: 3}],
     extractTime: (2/24)
+},
+{
+    assetId: 'wtw',
+    takes: [],
+    gives: [{extractId: 'pow', count: 5}],
+    extractTime: (4/24)
+},
+{
+    assetId: 'spw',
+    takes: [],
+    gives: [{extractId: 'pow', count: 1}],
+    extractTime: (8/24)
 }
 ]
+
 var cropLands = ['scl', 'ocl', 'fcl']
 var cropLandsClone = ['sclcorn', 'oclcorn', 'fclcorn','sclcarrot', 'oclcarrot', 'fclcarrot']
 var cropConfigs = {
@@ -120,7 +170,7 @@ function getConfigs(){
     async: false
   }).done(function(data) {
       feedConfigs = data.data.feedConfigNew
-      console.log('cropconfig', data.data.cropConfig)
+
     });
 }
 
@@ -208,8 +258,8 @@ function getCbxTrades(){
   }).done(function(data) {
     $(data).each(function(i, e){
     var dataDate = new Date((e[0])*1000)
-    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
-    cbxTradesArr[dictKey] = e[1]
+    //var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    cbxTradesArr[e[0]] = e[1]
     /*var newDict = {}*/
     /*newDict['"' + dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate() + '"'] = e[1]
     cbxTradesArr.push(newDict)*/
@@ -228,8 +278,8 @@ function getTrxTrades(){
   }).done(function(data) {
     $(data).each(function(i, e){
     var dataDate = new Date((e[0])*1000)
-    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
-    trxTradesArr[dictKey] = e[1]
+    //var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    trxTradesArr[e[0]] = e[1]
     /*var newDict = {}
     newDict['"' + dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate() + '"'] = e[1]
     trxTradesArr.push(newDict)*/
@@ -259,10 +309,10 @@ function getAssetTrades(assetId, marketId){
   }).done(function(data) {
     $(data).each(function(i, e){
     var dataDate = new Date((e[0])*1000)
-    var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+    //var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
 
     if (!['trx', 'cbx'].includes(assetId)){
-        var amtVal = assetMarketTrades[dictKey]
+        var amtVal = assetMarketTrades[e[0]]
         var usdVal = amtVal * e[1]
         assetUsdTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: usdVal })
     }
@@ -274,10 +324,76 @@ function getAssetTrades(assetId, marketId){
   return [assetTradesArr, assetUsdTradesArr]
 }
 
-function showChart(assetId, assetMarketId, chartWidth){
+var consumptionTradesArr
+var productionTradesArr
+function getAssetPcTrades(consumptionIds, productionId, consumptionCounts, productionCount){
+  consumptionTradesArr = []
+  productionTradesArr = []
+  consumptionTradesDict = {}
+  productionTradesDict = {}
 
-    var assetTrades =  getAssetTrades(assetId, assetMarketId)[0]
-    var assetUsdTrades =  getAssetTrades(assetId, assetMarketId)[1]
+  if (consumptionIds.length > 0){
+    $(consumptionIds).each(function(i, e){
+    var getPrice_ = getPrice(e)
+    var assetMarketTrades
+    if (getPrice_.market === 'trx'){
+        assetMarketTrades = trxTradesArr
+    }
+    else if (getPrice_.market === 'cbx'){
+        assetMarketTrades = cbxTradesArr
+    }
+    $.ajax({
+        url: "https://api.cropbytes.com/api/v2/peatio/public/markets/" + e + getPrice_.market +"/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
+        context: 'application/json',
+        async: false
+          }).done(function(data){
+            $(data).each(function(i2, e2){
+              var dataDate = new Date((e2[0])*1000)
+
+              //var dictKey = dataDate.getFullYear() + '-' + (dataDate.getMonth() + 1) + '-' + dataDate.getDate()
+              if (!(e2[0] in consumptionTradesDict)){
+                consumptionTradesDict[e2[0]] = (e2[1] * assetMarketTrades[e2[0]] * consumptionCounts[i])
+              }
+              else {
+                consumptionTradesDict[e2[0]] += (e2[1] * assetMarketTrades[e2[0]] * consumptionCounts[i])
+              }
+
+            });
+          });
+      });
+  }
+    console.log('consumptionTradesDict', consumptionTradesDict)
+  $.each(consumptionTradesDict, function(i, e){
+    var dataDate = new Date((i)*1000)
+    console.log('consumptionTradesDictttt', i, e)
+    consumptionTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: e })
+  });
+  console.log('consumptionTradesArr', consumptionTradesArr)
+  var getProdPrice_ = getPrice(productionId)
+    var prodAssetMarketTrades
+    if (getProdPrice_.market === 'trx'){
+        prodAssetMarketTrades = trxTradesArr
+    }
+    else if (getProdPrice_.market === 'cbx'){
+        prodAssetMarketTrades = cbxTradesArr
+    }
+  $.ajax({
+    url: "https://api.cropbytes.com/api/v2/peatio/public/markets/" + productionId + getProdPrice_.market +"/k-line?period=1440&time_from=1580000000&time_to=" + unixCurrentTime + "",
+    context: 'application/json',
+    async: false
+  }).done(function(data) {
+    $(data).each(function(i, e){
+      var dataDate = new Date((e[0])*1000)
+      productionTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: e[1] * prodAssetMarketTrades[e[0]] * productionCount })
+    })
+  });
+  return [consumptionTradesArr, productionTradesArr]
+}
+
+function showChart(assetId, assetMarketId, chartWidth){
+    var getTrades = getAssetTrades(assetId, assetMarketId)
+    var assetTrades =  getTrades[0]
+    var assetUsdTrades =  getTrades[1]
     var chart = LightweightCharts.createChart('chartContainer', {
       width: chartWidth,
       height: 300,
@@ -327,11 +443,8 @@ function showChart(assetId, assetMarketId, chartWidth){
 
     marketSeries.setData(assetTrades)
     usdSeries.setData(assetUsdTrades)
-    /*chart.addLineSeries({
-        color: 'rgba(4, 111, 232, 1)',
-        lineWidth: 2,
-    }).setData(assetTrades)*/
-    chart.timeScale().fitContent();
+
+     chart.timeScale().fitContent();
 
     $('#chartContainer').css('position', 'relative')
 
@@ -353,19 +466,113 @@ function showChart(assetId, assetMarketId, chartWidth){
 
 }
 
+function showPcChart(consumptionIds, productionId, chartWidth, consumptionCounts, productionCount){
+    var getTrades = getAssetPcTrades(consumptionIds, productionId, consumptionCounts, productionCount)
+    console.log('getTrades', getTrades)
+    var consumptionTrades =  getTrades[0]
+    var productionTrades =  getTrades[1]
+    var chart = LightweightCharts.createChart('pcChartContainer', {
+      width: chartWidth,
+      height: 300,
+        rightPriceScale: {
+            visible: true,
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        leftPriceScale: {
+            visible: true,
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        layout: {
+            backgroundColor: '#100841',
+		    textColor: '#ffffff',
+        },
+      grid: {
+        vertLines: {
+			color: 'rgba(197, 203, 206, 0.4)',
+			style: LightweightCharts.LineStyle.Dotted,
+		},
+		horzLines: {
+			color: 'rgba(197, 203, 206, 0.4)',
+			style: LightweightCharts.LineStyle.Dotted,
+		},
+      },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        timeScale: {
+            borderColor: 'rgba(197, 203, 206, 1)',
+        },
+        handleScroll: {
+            vertTouchDrag: false,
+        },
+  });
+
+  var prodSeries = chart.addAreaSeries({
+      topColor: 'rgba(67, 83, 254, 0.7)',
+      bottomColor: 'rgba(67, 83, 254, 0.3)',
+      lineColor: 'rgba(67, 83, 254, 1)',
+      lineWidth: 2,
+      priceScaleId: 'right'
+    });
+
+    var consSeries = chart.addAreaSeries({
+      topColor: 'rgba(255, 192, 0, 0.7)',
+      bottomColor: 'rgba(255, 192, 0, 0.3)',
+      lineColor: 'rgba(255, 192, 0, 1)',
+      lineWidth: 2,
+      priceScaleId: 'right'
+    });
+
+    prodSeries.setData(productionTrades)
+    consSeries.setData(consumptionTrades)
+
+    //chart.timeScale().fitContent();
+
+    $('#pcChartContainer').css('position', 'relative')
+
+    var legend = document.createElement('div');
+    legend.classList.add('chartLegend');
+    $('#pcChartContainer').append(legend);
+
+    var firstRow = document.createElement('div');
+    firstRow.innerText = 'Production Cost'
+    firstRow.style.color = 'rgba(67, 83, 254, 1)';
+    legend.appendChild(firstRow);
+
+    if (consumptionIds.length > 0){
+        var secondRow = document.createElement('div');
+        secondRow.innerText = 'Consumption cost'
+        secondRow.style.color = 'rgba(255, 192, 0, 1)';
+        legend.appendChild(secondRow);
+    }
+}
+
 var chartsModal = document.getElementById('chartsModal')
 $('#chartsModal').on('show.bs.modal', function (event) {
+  $('.loadingCont').fadeIn(1000)
   var assetMarket = ''
   var assetID = ''
   var modalTitle = ''
   var button = event.relatedTarget
   assetID = button.getAttribute('data-bs-asset_id')
   assetMarket = button.getAttribute('data-bs-market')
+  var consumptionIdsList = []
+  consumptionIds = button.getAttribute('data-bs-consumption_ids')
+  consumptionIdsArr = consumptionIds.split(',')
+  consumptionCounts = button.getAttribute('data-bs-consumption_counts')
+  consumptionCountsArr = consumptionCounts.split(',')
+
+  productionId = button.getAttribute('data-bs-production_id')
+  productionCount = button.getAttribute('data-bs-production_count')
   $(this).find('#chartContainer').empty()
+  $(this).find('#pcChartContainer').empty()
   $('#chartsModal').on('shown.bs.modal', function () {
     $('#chartContainer').empty()
+    $('#pcChartContainer').empty()
     showChart(assetID, assetMarket, $('#chartContainer').width())
-});
+    showPcChart(consumptionIdsArr, productionId, $('#pcChartContainer').width(), consumptionCountsArr, productionCount)
+    });
+  $('.loadingCont').fadeOut(1000)
 })
 
 
@@ -466,6 +673,8 @@ function getAssetTakes(assetId){
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   var feedTime = 0
+  var assetTakesList = []
+  var assetTakesCountList = []
   if (typeof asset !== "undefined"){
     feedTime = asset.feedTime
     if (asset.takes.other.length > 0){
@@ -475,6 +684,8 @@ function getAssetTakes(assetId){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(takes_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.assetId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() + '</td></tr>')
         totalPrice += ((6/feedTime) * (parseFloat(e.count * usd_price)))
+        assetTakesList.push(e.assetId)
+        assetTakesCountList.push((e.count * (6/feedTime))/6)
       });
     }
     if (asset.takes.sun.length > 0){
@@ -486,7 +697,7 @@ function getAssetTakes(assetId){
         totalPrice += parseFloat(e.count * usd_price)
       });
     }
-    return [takes_cont.prop('outerHTML'), totalPrice, feedTime]
+    return [takes_cont.prop('outerHTML'), totalPrice, feedTime, assetTakesList, assetTakesCountList]
   }
   else {
     return ['', 0]
@@ -499,6 +710,8 @@ function getAssetGives(assetId){
   var asset = feedConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   var extractTime = 0
+  var assetGives
+  var assetGivesCount
   if (typeof asset !== "undefined"){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
@@ -507,9 +720,11 @@ function getAssetGives(assetId){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         totalPrice += (e.count * usd_price)
+        assetGives = e.extractId
+        assetGivesCount = (e.count * (7/extractTime)) / 7
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime, assetGives, assetGivesCount]
   }
   else {
     return ['', 0, 0]
@@ -520,6 +735,8 @@ function getFruitTakes(assetId){
   var takes_cont = $('<table></table>')
   var asset = fruitConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
+  var fruitTakesList = []
+  var fruitTakesCountList = []
   if (typeof asset !== "undefined"){
     if (asset.takes.length > 0){
       //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
@@ -530,9 +747,11 @@ function getFruitTakes(assetId){
         //$(takes_cont).append('<tr><td colspan="3">Grinding fee: 0.01 trx/crop</td></tr>')
         totalPrice += parseFloat(e.count * usd_price)
         //(parseFloat((0.01 * e.count) * getUsdPrice('usdt', getPrice('trx').price)) - if include grinding fee
+        fruitTakesList.push(e.assetId)
+        fruitTakesCountList.push(e.count)
       });
     }
-    return [takes_cont.prop('outerHTML'), totalPrice]
+    return [takes_cont.prop('outerHTML'), totalPrice, fruitTakesList, fruitTakesCountList]
   }
   else {
     return ['', 0]
@@ -544,6 +763,8 @@ function getFruitGives(assetId){
   var asset = fruitConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   var extractTime = 0
+  var fruitGives
+  var fruitGivesCount
   if (typeof asset !== "undefined"){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
@@ -552,9 +773,11 @@ function getFruitGives(assetId){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         totalPrice += parseFloat(e.count * usd_price)
+        fruitGives = 'frf'
+        fruitGivesCount = e.count
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime, fruitGives, fruitGivesCount]
   }
   else {
     return ['', 0, 0]
@@ -567,6 +790,8 @@ function getWellGives(assetId){
   var asset = wellConfigs.find(config => config.assetId == assetId)
   var totalPrice = 0
   var extractTime = 0
+  var wellGives
+  var wellGivesCount
   if (typeof asset !== "undefined"){
     extractTime = Math.round((asset.extractTime + Number.EPSILON) * 100) / 100
     if (asset.gives.length > 0){
@@ -575,9 +800,11 @@ function getWellGives(assetId){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         totalPrice += parseFloat(e.count * usd_price)
+        wellGives = e.extractId
+        wellGivesCount = (e.count * (7/extractTime)) / 7
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime, wellGives, wellGivesCount]
   }
   else {
     return ['', 0, 0]
@@ -600,6 +827,8 @@ function getCropTakes(assetId, cloneId){
       }
   }
   var totalPrice = 0
+  var cropTakesList = []
+  var cropTakesCountList = []
   if (typeof asset !== "undefined"){
     if (asset.takes.length > 0){
       //$(takes_cont).append('<tr><th>Mon-Sat:</th><th></th></tr>');
@@ -610,9 +839,11 @@ function getCropTakes(assetId, cloneId){
         //$(takes_cont).append('<tr><td colspan="3">Grinding fee: 0.01 trx/crop</td></tr>')
         totalPrice += parseFloat(e.count * usd_price)
         // (parseFloat((grindingFee * e.count) * getUsdPrice('usdt', getPrice('trx').price)) if include grinding fee
+        cropTakesList.push(e.assetId)
+        cropTakesCountList.push(e.count)
       });
     }
-    return [takes_cont.prop('outerHTML'), totalPrice]
+    return [takes_cont.prop('outerHTML'), totalPrice, cropTakesList, cropTakesCountList]
   }
   else {
     return ['', 0]
@@ -622,6 +853,7 @@ function getCropTakes(assetId, cloneId){
 function getCropGives(assetId, cloneId){
   var gives_cont = $('<table></table>')
   var asset
+
   if (typeof cloneId !== "undefined"){
     if (cloneId.slice(3) == 'corn'){
         asset = cropConfigs.corn.find(config => config.assetId == assetId)
@@ -633,6 +865,8 @@ function getCropGives(assetId, cloneId){
 
   var totalPrice = 0
   var extractTime = 0
+  var cropGivesCount
+  var cropGives
   if (typeof asset !== "undefined"){
     extractTime = asset.extractTime
     if (asset.gives.length > 0){
@@ -641,10 +875,12 @@ function getCropGives(assetId, cloneId){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         $(gives_cont).append('<tr><td style="padding: 0 5px 0 5px;" colspan="2">' + e.count + ' ' + getAssetName(e.extractId) + '</td><td style="padding-left: 5px;"> ' + (e.count * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</td></tr>')
         totalPrice += parseFloat(e.count * usd_price)
+        cropGives = e.extractId
+        cropGivesCount = (e.count * (7/extractTime)) / 7
         //console.log(totalPrice, extractTime)
       });
     }
-    return [gives_cont.prop('outerHTML'), totalPrice, extractTime]
+    return [gives_cont.prop('outerHTML'), totalPrice, extractTime, cropGives, cropGivesCount]
   }
   else {
     return ['', 0, 0]
@@ -672,6 +908,7 @@ function showCards(){
       }
       else if (cropLands.includes(e.id)){
           //console.log(getCropGives(e.id, e.cloneId)[1], getCropTakes(e.id, e.cloneId)[1], getCropGives(e.id, e.cloneId)[2])
+          feedTime = 0
           harvestTime = (getCropGives(e.id, e.cloneId)[2])
           daily_profit = (getCropGives(e.id, e.cloneId)[1] - getCropTakes(e.id, e.cloneId)[1]) / getCropGives(e.id, e.cloneId)[2]
 
@@ -709,14 +946,21 @@ function showCards(){
         card_body = '    <div class="row">' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.mining + ';">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(1) + ' ' + e.id +  '/ 1 cbx</div>' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.exchange + ';">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> <div style="color: black;">Est. next mining conversion: </div>' + parseFloat(mining_v_exchange.next_mining_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
                   '    </div>'
       }
       else {
+        var feedHarvestRow
+        if (fruits.includes(e.id) | cropLands.includes(e.id) | wells.includes(e.id)){
+            feedHarvestRow = '<div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Harvest Time: </div>' + harvestTime + ' days</div>'
+        }
+        else {
+            feedHarvestRow = '<div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Feed Time: </div> ' + feedTime +  ' days</div>' +
+                             '<div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Harvest Time: </div>' + harvestTime + ' days</div>'
+        }
         card_body = '  <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
-                  '    <div class="row">' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Feed Time: </div> ' + feedTime +  ' days</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Harvest Time: </div>' + harvestTime + ' days</div>' +
+                  '    <div class="row">' + feedHarvestRow +
                   '    </div>' +
                   '    <div class="row">' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
@@ -724,6 +968,51 @@ function showCards(){
                   '    </div>'
       }
       //var item_qty = window.localStorage.getItem(e.id) || 0;
+
+      var asset_gives = []
+      var asset_gives_count = []
+      if (typeof getAssetGives(e.id)[3] !== "undefined"){
+        var getAssetGives_ = getAssetGives(e.id)
+        asset_gives.push(getAssetGives_[3])
+        asset_gives_count.push(getAssetGives_[4])
+      }
+      else if (typeof getFruitGives(e.id)[3] !== "undefined"){
+        var getFruitGives_ = getFruitGives(e.id)
+        asset_gives.push(getFruitGives_[3])
+        asset_gives_count.push(getFruitGives_[4])
+      }
+      else if (typeof getWellGives(e.id)[3] !== "undefined"){
+        var getWellGives_ = getWellGives(e.id)
+        asset_gives.push(getWellGives_[3])
+        asset_gives_count.push(getWellGives_[4])
+      }
+      else if (typeof getCropGives(e.id, e.cloneId)[3] !== "undefined"){
+        var getCropGives_ = getCropGives(e.id, e.cloneId)
+        asset_gives.push(getCropGives_[3])
+        asset_gives_count.push(getCropGives_[4])
+      }
+    console.log('asset_gives', e.id, getAssetGives(e.id)[3], getFruitGives(e.id)[3], getWellGives(e.id)[3], getCropGives(e.id, e.cloneId)[3], asset_gives)
+
+      var asset_takes = []
+      var asset_takes_count = []
+      if (typeof getAssetTakes(e.id)[3] !== "undefined"){
+        var getAssetTakes_ = getAssetTakes(e.id)
+        asset_takes.push(getAssetTakes_[3])
+        asset_takes_count.push(getAssetTakes_[4])
+      }
+      else if (typeof getFruitTakes(e.id)[2] !== "undefined"){
+        var getFruitTakes_ = getFruitTakes(e.id)
+        asset_takes.push(getFruitTakes_[2])
+        asset_takes_count.push(getFruitTakes_[3])
+      }
+      else if (typeof getCropTakes(e.id, e.cloneId)[2]){
+        var getCropTakes_ = getCropTakes(e.id, e.cloneId)
+        asset_takes.push(getCropTakes_[2])
+        asset_takes_count.push(getCropTakes_[3])
+      }
+      console.log('asset_takes', e.id, getAssetTakes(e.id)[2], getFruitTakes(e.id)[2], getCropTakes(e.id, e.cloneId)[2], asset_takes)
+      var production_id = asset_gives
+      var consumption_ids = asset_takes
       var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6">' +
                   '<div class="card" aria-hidden="true">'+
                   ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
@@ -734,7 +1023,7 @@ function showCards(){
                   '    <span class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">' + item_qty + '</span>' +
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
-                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
+                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" data-bs-production_id="' + production_id + '" data-bs-production_count="' + asset_gives_count + '" data-bs-consumption_ids="' + consumption_ids + '" data-bs-consumption_counts="' + asset_takes_count + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
                   ' ' + card_body +
                   /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
@@ -1179,6 +1468,7 @@ $(document).on('click', '.minus_btn', function () {
 })
 
 $(document).ready(function(){
+  //$('.loadingCont').css('display', 'block')
   getFiats();
   getConfigs();
   getCurrencies();
@@ -1189,6 +1479,7 @@ $(document).ready(function(){
   updateSummary();
   getCbxTrades()
   getTrxTrades()
+  $('.loadingCont').fadeOut(1000);
   /*setInterval(function() {
 
   }, 300000);*/
