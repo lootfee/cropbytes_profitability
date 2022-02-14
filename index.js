@@ -38,17 +38,28 @@ est_mining_supply = {
 
 var miningDif
 var nextEstDiff
+var nextl1
+var currentWeek
 function getMiningDif(){
   $.ajax({
     url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
     context: 'application/json',
     async: false
   }).done(function(data) {
+      currentWeek = data.data.week
       miningDif = data.data.difficulty
       nextEstDiff = parseFloat((data.data.totalMine / est_mining_supply[data.data.week]) ** 5).toFixed(2)
-      $('#current_diff').text(miningDif)
-      $('#next_diff').text(nextEstDiff)
+      $.each(est_mining_supply, function(i, e){
+        calcl1 = parseFloat((data.data.totalMine / est_mining_supply[i]) ** 5)
+        if (calcl1 <= 1){
+            nextl1 = {'week': i, 'difficulty': calcl1.toFixed(2)}
+            return false;
+        }
+      })
+      $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week ' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
     });
+
+
 }
 
 function getMiningVsExchange(extract_id){
@@ -58,7 +69,8 @@ function getMiningVsExchange(extract_id){
     var mining_return = extract_conversion_rate * miningDif
     var exchange_return = 1 / market_price
     var next_mining_return = extract_conversion_rate * nextEstDiff
-    return {'mining_return': mining_return, 'exchange_return': exchange_return, 'next_mining_return': next_mining_return}
+    var est_dl1_price = (exchange_return * market_price) / extract_conversion_rate
+    return {'mining_return': mining_return, 'exchange_return': exchange_return, 'next_mining_return': next_mining_return, 'est_dl1_price': est_dl1_price}
 }
 
 var wells = ['sw', 'well', 'lake', 'wtw', 'spw']
@@ -936,17 +948,30 @@ function showCards(){
       var mining_v_exchange = getMiningVsExchange(e.id)
       var mining_return_color = {}
       if (mining_v_exchange.mining_return > mining_v_exchange.exchange_return){
-        mining_return_color = {'mining': 'blue', 'exchange': 'red'}
+        mining_return_color = {'mining': 'red', 'exchange': 'blue'}
       }
       else {
-        mining_return_color = {'mining': 'red', 'exchange': 'blue'}
+        mining_return_color = {'mining': 'blue', 'exchange': 'red'}
+      }
+      var bsmStatus
+      if (extractsMiningRequirements[e.id] > mining_v_exchange.exchange_return){
+        bsmStatus = {'status': 'Sell', 'color': 'red'}
+      }
+      else if (mining_v_exchange.mining_return <= mining_v_exchange.exchange_return){
+        bsmStatus = {'status': 'Mine', 'color': 'green'}
+      }
+      else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
+        bsmStatus = {'status': 'Buy', 'color': 'blue'}
       }
       var card_body
       if (extracts.includes(e.id)){
         card_body = '    <div class="row">' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Conversion rate: ' + extractsMiningRequirements[e.id] + ' ' + e.id + '/ 1 cbx</div>' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.mining + ';">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(1) + ' ' + e.id +  '/ 1 cbx</div>' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.exchange + ';">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> <div style="color: black;">Est. next mining conversion: </div>' + parseFloat(mining_v_exchange.next_mining_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1" style="margin-top: 5px;">Est. DL 1 price: <span style="color: ' + bsmStatus.color + ';"> ' + mining_v_exchange.est_dl1_price.toFixed(3) +  ' cbx</span></div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
                   '    </div>'
       }
       else {

@@ -81,6 +81,7 @@ body {
     position: fixed;
     width: 100%;
     z-index: 100;
+    margin-top: -9px;
 }
 
 .loadingCont {
@@ -106,10 +107,19 @@ body {
 	font-weight: 300;
 }
 
+#disclaimer {
+    color: white;
+    font-size: 8px
+}
+
 @media only screen and (max-width: 500px) {
 
    body {
       font-size: 8px !important;
    }
+
+   #disclaimer {
+    font-size: 5px
+}
 
 }
