@@ -52,7 +52,7 @@ function getMiningDif(){
       $.each(est_mining_supply, function(i, e){
         calcl1 = parseFloat((data.data.totalMine / est_mining_supply[i]) ** 5)
         if (calcl1 <= 1){
-            nextl1 = {'week': i, 'difficulty': calcl1.toFixed(2)}
+            nextl1 = {'week': parseInt(i) + 1, 'difficulty': calcl1.toFixed(2)}
             return false;
         }
       })
