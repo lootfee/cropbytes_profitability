@@ -222,15 +222,14 @@ function getCurrencies(){
     context: 'application/json',
     async: false
   }).done(function(data) {
-
     var newData = getObjectKeysAlphabetical(data)
-
     //i = 0, key = null, val = null;
     $(newData.keys).each(function (i, e) {
       var asset = newData.data.find(currency => currency.name == e)
       currencies.push(asset)
+
     })
-    console.log('currencies', currencies)
+
       //currencies = data
     });
 }
@@ -243,6 +242,7 @@ function getTickers(){
     async: false
   }).done(function(data) {
       tickers = data
+
     });
 }
 
@@ -254,6 +254,7 @@ function getMarkets(){
     async: false
   }).done(function(data) {
       markets = data
+
     });
 }
 
@@ -262,9 +263,9 @@ var unixCurrentTime = Math.round(+new Date()/1000)
 var today = new Date()
 var marketVolume = {}
 function getMarketVolume(){
-    var unix7day = Math.round(+new Date(new Date().setDate(today.getDate() - 7))/1000);
-    var unix30day = Math.round(+new Date(new Date().setDate(today.getDate() - 30))/1000);
-    console.log(unix7day, unix30day)
+    var unix7day = ~~(+new Date(new Date().setDate(today.getDate() - 7))/1000);
+    var unix30day = ~~(+new Date(new Date().setDate(today.getDate() - 30))/1000);
+
     $(markets).each(function(i, e){
         marketVolume[e.base_unit] = {'marketBuy7': 0, 'marketSell7': 0, 'marketBuy30': 0, 'marketSell30': 0}
         $.ajax({
@@ -272,7 +273,6 @@ function getMarketVolume(){
             context: 'application/json',
             async: false
           }).done(function(data) {
-            //var last_day = data.at(-1).created_at
             $(data).each(function(i2, e2){
                 if (e2.created_at >= unix30day){
                     if (e2.created_at >= unix7day){
@@ -292,8 +292,19 @@ function getMarketVolume(){
                 }
             })
           });
+        var contName = '.' + e.base_unit + 'VolumeCont'
+        $(contName).empty();
+        $(contName).removeClass('volumeCont')
+        $(contName).append('<div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Last 100 trades:</div>' +
+                      '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">7 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.base_unit]['marketBuy7']) +  ' ' + e.base_unit + '</div></div>' +
+                      '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">7 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.base_unit]['marketSell7']) +  ' ' + e.base_unit + '</div></div>' +
+                      '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">30 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.base_unit]['marketBuy30']) +  ' ' + e.base_unit + '</div></div>' +
+                      '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">30 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.base_unit]['marketSell30']) +  ' ' + e.base_unit + '</div></div>' )
+
+         $('.volumeCont').empty()
     })
 }
+
 
 
 var cbxTradesArr
@@ -410,13 +421,13 @@ function getAssetPcTrades(consumptionIds, productionId, consumptionCounts, produ
           });
       });
   }
-    console.log('consumptionTradesDict', consumptionTradesDict)
+
   $.each(consumptionTradesDict, function(i, e){
     var dataDate = new Date((i)*1000)
-    console.log('consumptionTradesDictttt', i, e)
+
     consumptionTradesArr.push({ time: {year: dataDate.getFullYear(), month: dataDate.getMonth() + 1, day: dataDate.getDate()}, value: e })
   });
-  console.log('consumptionTradesArr', consumptionTradesArr)
+
   var getProdPrice_ = getPrice(productionId)
     var prodAssetMarketTrades
     if (getProdPrice_.market === 'trx'){
@@ -518,7 +529,7 @@ function showChart(assetId, assetMarketId, chartWidth){
 
 function showPcChart(consumptionIds, productionId, chartWidth, consumptionCounts, productionCount){
     var getTrades = getAssetPcTrades(consumptionIds, productionId, consumptionCounts, productionCount)
-    console.log('getTrades', getTrades)
+    //console.log('getTrades', getTrades)
     var consumptionTrades =  getTrades[0]
     var productionTrades =  getTrades[1]
     var chart = LightweightCharts.createChart('pcChartContainer', {
@@ -691,7 +702,7 @@ function getUsdPrice(market, price){
       var marketUsdPrice = getPrice(market).price
       var usd_price = (parseFloat(marketUsdPrice) * parseFloat(price)).toFixed(3)
       var fiat_default = window.localStorage.getItem('fiat_default')
-      console.log('fiat_default', getFiatDefault())
+      //console.log('fiat_default', getFiatDefault())
       if (fiat_default !== 'usd'){
         usd_price = parseFloat(usd_price) * getFiatDefault()
       }
@@ -1002,15 +1013,14 @@ function showCards(){
         bsmStatus = {'status': 'Buy', 'color': 'blue'}
       }
       volumeDiv = ''
-      if (e.id in marketVolume){
-        var volumeDiv = '    <div class="row" style="margin-top: 10px;"> ' +
-                  '  <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Last 100 trades:</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">7 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketBuy7']) +  ' ' + e.id + '</div></div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">7 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketSell7']) +  ' ' + e.id + '</div></div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">30 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketBuy30']) +  ' ' + e.id + '</div></div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">30 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketSell30']) +  ' ' + e.id + '</div></div>' +
-                  '    </div>'
-      }
+
+      var volumeDiv = '    <div class="row volumeCont ' + e.id + 'VolumeCont" style="margin-top: 10px;"> ' +
+                    '        <div class="d-flex justify-content-center">' +
+                    '         <div class="spinner-border spinner-border-sm">' +
+                    '            <span class="visually-hidden">Loading...</span>' +
+                    '         </div>' +
+                    '        </div>' +
+                    '    </div>'
 
       var card_body
       if (extracts.includes(e.id)){
@@ -1065,7 +1075,7 @@ function showCards(){
         asset_gives.push(getCropGives_[3])
         asset_gives_count.push(getCropGives_[4])
       }
-    console.log('asset_gives', e.id, getAssetGives(e.id)[3], getFruitGives(e.id)[3], getWellGives(e.id)[3], getCropGives(e.id, e.cloneId)[3], asset_gives)
+    //console.log('asset_gives', e.id, getAssetGives(e.id)[3], getFruitGives(e.id)[3], getWellGives(e.id)[3], getCropGives(e.id, e.cloneId)[3], asset_gives)
 
       var asset_takes = []
       var asset_takes_count = []
@@ -1084,7 +1094,7 @@ function showCards(){
         asset_takes.push(getCropTakes_[2])
         asset_takes_count.push(getCropTakes_[3])
       }
-      console.log('asset_takes', e.id, getAssetTakes(e.id)[2], getFruitTakes(e.id)[2], getCropTakes(e.id, e.cloneId)[2], asset_takes)
+      //console.log('asset_takes', e.id, getAssetTakes(e.id)[2], getFruitTakes(e.id)[2], getCropTakes(e.id, e.cloneId)[2], asset_takes)
       var production_id = asset_gives
       var consumption_ids = asset_takes
       var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6">' +
@@ -1116,6 +1126,7 @@ function showCards(){
 
 function updateSummary(){
     $('#assets-container').empty();
+    $('.asset_summary').css('display', 'none');
     $('#production-container').empty()
     $('#consumption-container').empty()
     var total_production = 0
@@ -1128,7 +1139,7 @@ function updateSummary(){
                     var orig_i = i.slice(0, 3)
                     var item_market_price = getPrice(orig_i)
                     var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
-                    console.log('orig_i', i, orig_i)
+
                     $('#assets-container').append('<div class="asset_summary"><span>' + getCropLandName(i) + ' = </span><span> ' + window.localStorage.getItem(i) + ' </span><span>(' + (window.localStorage.getItem(i) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
                     total_assets += parseFloat(window.localStorage.getItem(i)) * parseFloat(usd_price)
                 }
@@ -1160,7 +1171,7 @@ function updateSummary(){
             $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * parseFloat(usd_price)).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
         }
     })
-    console.log('tp', total_production, total_consumption)
+
     var daily_profit = parseFloat(parseFloat(total_production) - parseFloat(total_consumption))
     $('#tdp').text(' ' + total_production.toFixed(2) + ' ' + fiat_default.toUpperCase())
     $('#tdc').text(' ' + total_consumption.toFixed(2) + ' ' + fiat_default.toUpperCase() )
@@ -1542,24 +1553,50 @@ $(document).on('click', '.minus_btn', function () {
 
 })
 
+var totalTime = 0
+function timeFunction(f){
+    var startTime = performance.now()
+    f()
+    var endTime = performance.now()
+    totalTime += (endTime - startTime) / 1000
+    console.log(`${f.name} - ${(endTime - startTime) / 1000} seconds`)
+}
+
 $(document).ready(function(){
   //$('.loadingCont').css('display', 'block')
-  getFiats();
-  getConfigs();
-  getCurrencies();
-  getTickers()
-  getMarkets();
-  getMarketVolume();
-  getMiningDif()
-  showCards();
-  updateSummary();
-  getCbxTrades()
-  getTrxTrades()
+  timeFunction(getFiats)
+  //getFiats();
+  timeFunction(getConfigs)
+  //getConfigs();
+  timeFunction(getCurrencies)
+  //getCurrencies();
+  timeFunction(getTickers)
+  //getTickers()
+  timeFunction(getMarkets)
+  //getMarkets();
+  timeFunction(getMiningDif)
+  //getMiningDif()
+  timeFunction(showCards)
+  //showCards();
+  timeFunction(updateSummary)
+  //updateSummary();
   $('.loadingCont').fadeOut(1000);
-  /*setInterval(function() {
+  console.log('total time', totalTime)
 
+  $(document).ready(function(){
+        console.log('window')
+        timeFunction(getCbxTrades)
+        //getCbxTrades()
+        timeFunction(getTrxTrades)
+        //getTrxTrades()
+        timeFunction(getMarketVolume)
+        //getMarketVolume();
+        console.log('total time', totalTime)
+    });
+  /*setInterval(function() {
   }, 300000);*/
 });
+
 
 $('.summary_btn').click(function(){
     if ($('.asset_summary').is(':visible')){
