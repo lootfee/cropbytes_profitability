@@ -254,11 +254,47 @@ function getMarkets(){
     async: false
   }).done(function(data) {
       markets = data
-
     });
 }
 
+
 var unixCurrentTime = Math.round(+new Date()/1000)
+var today = new Date()
+var marketVolume = {}
+function getMarketVolume(){
+    var unix7day = Math.round(+new Date(new Date().setDate(today.getDate() - 7))/1000);
+    var unix30day = Math.round(+new Date(new Date().setDate(today.getDate() - 30))/1000);
+    console.log(unix7day, unix30day)
+    $(markets).each(function(i, e){
+        marketVolume[e.base_unit] = {'marketBuy7': 0, 'marketSell7': 0, 'marketBuy30': 0, 'marketSell30': 0}
+        $.ajax({
+            url: "https://api.cropbytes.com/api/v2/peatio/public/markets/" + e.id +"/trades",
+            context: 'application/json',
+            async: false
+          }).done(function(data) {
+            //var last_day = data.at(-1).created_at
+            $(data).each(function(i2, e2){
+                if (e2.created_at >= unix30day){
+                    if (e2.created_at >= unix7day){
+                        if (e2.taker_type === 'sell'){
+                            marketVolume[e.base_unit]['marketSell7'] += e2.amount
+                        }
+                        else if (e2.taker_type === 'buy'){
+                            marketVolume[e.base_unit]['marketBuy7'] += e2.amount
+                        }
+                    }
+                    if (e2.taker_type === 'sell'){
+                        marketVolume[e.base_unit]['marketSell30'] += e2.amount
+                    }
+                    else if (e2.taker_type === 'buy'){
+                        marketVolume[e.base_unit]['marketBuy30'] += e2.amount
+                    }
+                }
+            })
+          });
+    })
+}
+
 
 var cbxTradesArr
 function getCbxTrades(){
@@ -401,6 +437,8 @@ function getAssetPcTrades(consumptionIds, productionId, consumptionCounts, produ
   });
   return [consumptionTradesArr, productionTradesArr]
 }
+
+
 
 function showChart(assetId, assetMarketId, chartWidth){
     var getTrades = getAssetTrades(assetId, assetMarketId)
@@ -963,6 +1001,17 @@ function showCards(){
       else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
         bsmStatus = {'status': 'Buy', 'color': 'blue'}
       }
+      volumeDiv = ''
+      if (e.id in marketVolume){
+        var volumeDiv = '    <div class="row" style="margin-top: 10px;"> ' +
+                  '  <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Last 100 trades:</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">7 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketBuy7']) +  ' ' + e.id + '</div></div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">7 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketSell7']) +  ' ' + e.id + '</div></div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">30 Day buys: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketBuy30']) +  ' ' + e.id + '</div></div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">30 Day sells: </div><div style="margin-left: 5px;">' + parseInt(marketVolume[e.id]['marketSell30']) +  ' ' + e.id + '</div></div>' +
+                  '    </div>'
+      }
+
       var card_body
       if (extracts.includes(e.id)){
         card_body = '    <div class="row">' +
@@ -1049,6 +1098,7 @@ function showCards(){
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
                   '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" data-bs-production_id="' + production_id + '" data-bs-production_count="' + asset_gives_count + '" data-bs-consumption_ids="' + consumption_ids + '" data-bs-consumption_counts="' + asset_takes_count + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
+                  ' ' + volumeDiv +
                   ' ' + card_body +
                   /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
                   '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
@@ -1499,6 +1549,7 @@ $(document).ready(function(){
   getCurrencies();
   getTickers()
   getMarkets();
+  getMarketVolume();
   getMiningDif()
   showCards();
   updateSummary();
