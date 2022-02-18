@@ -59,6 +59,10 @@ body {
   }
 }*/
 
+#items-container {
+    padding-bottom: 50px;
+}
+
 #summary_btn_container {
     float: right;
     margin: -15px 15px 0 0;

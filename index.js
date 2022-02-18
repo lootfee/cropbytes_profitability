@@ -957,6 +957,7 @@ function showCards(){
       var feedTime
       var item_market_price = getPrice(e.id)
       var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
+
       //console.log(e.id, getAssetTakes(e.id)[1], getAssetGives(e.id)[2])
       //console.log(e.id, getFruitGives(e.id)[1], getFruitTakes(e.id)[1], getFruitGives(e.id)[2])
       if (fruits.includes(e.id)){
@@ -1012,7 +1013,6 @@ function showCards(){
       else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
         bsmStatus = {'status': 'Buy', 'color': 'blue'}
       }
-      volumeDiv = ''
 
       var volumeDiv = '    <div class="row volumeCont ' + e.id + 'VolumeCont" style="margin-top: 10px;"> ' +
                     '        <div class="d-flex justify-content-center">' +
@@ -1023,6 +1023,7 @@ function showCards(){
                     '    </div>'
 
       var card_body
+      var roi = getRoi(usd_price, daily_profit)
       if (extracts.includes(e.id)){
         card_body = '    <div class="row">' +
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Conversion rate: ' + extractsMiningRequirements[e.id] + ' ' + e.id + '/ 1 cbx</div>' +
@@ -1048,7 +1049,7 @@ function showCards(){
                   '    </div>' +
                   '    <div class="row">' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(usd_price, daily_profit) + ' days</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + roi + ' days</div>' +
                   '    </div>'
       }
       //var item_qty = window.localStorage.getItem(e.id) || 0;
@@ -1097,7 +1098,8 @@ function showCards(){
       //console.log('asset_takes', e.id, getAssetTakes(e.id)[2], getFruitTakes(e.id)[2], getCropTakes(e.id, e.cloneId)[2], asset_takes)
       var production_id = asset_gives
       var consumption_ids = asset_takes
-      var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6">' +
+
+      var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6 asset_card" data-asset_name="' + e.name + '" data-asset_price="' + usd_price+ '" data-daily_profit="' + daily_profit + '" data-roi="' + roi + '">' +
                   '<div class="card" aria-hidden="true">'+
                   ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
                   ' <div class="card-body"> ' +
@@ -1584,7 +1586,6 @@ $(document).ready(function(){
   console.log('total time', totalTime)
 
   $(document).ready(function(){
-        console.log('window')
         timeFunction(getCbxTrades)
         //getCbxTrades()
         timeFunction(getTrxTrades)
@@ -1646,3 +1647,79 @@ $('#currency_select').change(function(){
     window.location.reload()
 })
 
+
+function sortName(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        sortArr.push([$(e).data('asset_name'), e])
+    })
+    sortArr.sort(function(x, y) {
+    return x[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
+function sortPrice(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        sortArr.push([$(e).data('asset_price'), e])
+    })
+    sortArr.sort(function(x, y) {
+    return y[0] - x[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
+function sortProfit(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        sortArr.push([$(e).data('daily_profit'), e])
+    })
+    sortArr.sort(function(x, y) {
+        return y[0] - x[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
+
+function sortRoi(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        var roi_data = $(e).data('roi')
+        if (roi_data <= 0){
+            roi_data = 100000
+        }
+        sortArr.push([roi_data, e])
+    })
+    sortArr.sort(function(x, y) {
+        return x[0] - y[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
+$('#sort_select').change(function(){
+    if ($(this).val() == 'name'){
+        sortName()
+    }
+    else if ($(this).val() == 'price'){
+        sortPrice()
+    }
+    else if ($(this).val() == 'profit'){
+        sortProfit()
+    }
+    else if ($(this).val() == 'roi'){
+        sortRoi()
+    }
+})
