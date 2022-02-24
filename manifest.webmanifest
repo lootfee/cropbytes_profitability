@@ -5,6 +5,11 @@
   "icons": [
     {
       "src": "https://blog.cropbytes.com/wp-content/uploads/2022/02/cropped-cb_fav-32x32.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "https://blog.cropbytes.com/wp-content/uploads/2022/02/cropped-cb_fav-32x32.png",
       "sizes": "32x32",
       "type": "image/png"
     },
