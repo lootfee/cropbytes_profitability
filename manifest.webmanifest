@@ -4,12 +4,12 @@
   "description": "Profitability calculator for Cropbytes game.",
   "icons": [
     {
-      "src": "https://blog.cropbytes.com/wp-content/uploads/2022/02/cropped-cb_fav-32x32.png",
+      "src": "https://www.cropbytes.com/img/favicon.ico",
       "sizes": "16x16",
       "type": "image/png"
     },
     {
-      "src": "https://blog.cropbytes.com/wp-content/uploads/2022/02/cropped-cb_fav-32x32.png",
+      "src": "https://www.cropbytes.com/img/favicon.ico",
       "sizes": "32x32",
       "type": "image/png"
     },
