@@ -1801,6 +1801,17 @@ function timeFunction(f){
 }
 
 $(document).ready(function(){
+  if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+        .then(registration => {
+          console.log('Service Worker is registered', registration);
+        })
+        .catch(err => {
+          console.error('Registration failed:', err);
+        });
+      });
+    }
   //$('.loadingCont').css('display', 'block')
   timeFunction(getFiats)
   //getFiats();
@@ -1849,17 +1860,7 @@ $(document).ready(function(){
             sortCircSupply()
         }
 
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('service-worker.js')
-            .then(registration => {
-              console.log('Service Worker is registered', registration);
-            })
-            .catch(err => {
-              console.error('Registration failed:', err);
-            });
-          });
-        }
+
     });
   /*setInterval(function() {
   }, 300000);*/
