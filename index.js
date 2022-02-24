@@ -36,6 +36,39 @@ est_mining_supply = {
 30:	28292196
 }
 
+asset_distribution_count = {
+    'pp': 490,
+    'ph': 48682,
+    'pg': 33617,
+    'pc': 33110,
+    'egr': 14484,
+    'br': 16604,
+    'bs': 14295,
+    'mud': 14244,
+    'dor': 806,
+    'zing': 7158,
+    'bsh': 6921,
+    'hcg': 5595,
+    'bb': 7436,
+    'pcg': 5968,
+    'spky': 400,
+    'blb': 244,
+    'wg': 148,
+    'ort': 5502,
+    'at': 46396,
+    'bt': 10098,
+    'scl': 51634,
+    'ocl': 16401,
+    'fcl': 1953,
+    'sw': 38021,
+    'well': 11767,
+    'lake': 6705,
+    'wtw': 3020,
+    'spw': 6062,
+    'house': 140,
+    'fm': 17
+}
+
 var miningDif
 var nextEstDiff
 var nextl1
@@ -957,7 +990,18 @@ function showCards(){
       var feedTime
       var item_market_price = getPrice(e.id)
       var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
-
+      var mcap_div = ''
+      var market_cap = 0
+      if (asset_distribution_count[e.id]){
+        var market_cap_ = parseFloat(asset_distribution_count[e.id] * usd_price).toFixed(0)
+        market_cap = market_cap_
+        var market_cap_str = market_cap_.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        var circ_supply = asset_distribution_count[e.id].toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        mcap_div = '<div class="row">' +
+                   '<div class="col-12 col-lg-12 col-md-12 col-sm-12 col-xs-12">Circulating supply: ' + circ_supply + ' ' + e.id.toUpperCase() + ' </div>' +
+                   '<div class="col-12 col-lg-12 col-md-12 col-sm-12 col-xs-12">Market Cap: ' + market_cap_str + ' USD</div>' +
+                   '</div>'
+      }
       //console.log(e.id, getAssetTakes(e.id)[1], getAssetGives(e.id)[2])
       //console.log(e.id, getFruitGives(e.id)[1], getFruitTakes(e.id)[1], getFruitGives(e.id)[2])
       if (fruits.includes(e.id)){
@@ -988,7 +1032,7 @@ function showCards(){
         }
       }
 
-      var item_qty
+      var item_qty = 0
       if (cropLands.includes(e.id)){
         item_qty = window.localStorage.getItem(e.cloneId) || 0;
       }
@@ -1099,17 +1143,19 @@ function showCards(){
       var production_id = asset_gives
       var consumption_ids = asset_takes
 
-      var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6 asset_card" data-asset_name="' + e.name + '" data-asset_price="' + usd_price+ '" data-daily_profit="' + daily_profit + '" data-roi="' + roi + '">' +
+      var card = '<div class="col-6 col-xl-2 col-lg-2 col-md-2 col-sm-6 col-xs-6 asset_card" data-asset_name="' + e.name + '" data-asset_price="' + usd_price+ '" data-daily_profit="' + daily_profit + '" data-roi="' + roi + '" data-market_cap="' + market_cap + '" data-circulating_supply="' + asset_distribution_count[e.id] + '">' +
                   '<div class="card" aria-hidden="true">'+
                   ' <img src="' + e.icon_url + '" class="card-img-top" alt="icon">' +
                   ' <div class="card-body"> ' +
                   '  <div style="font-size: 12px;"><strong>'  + e.name + '</strong></div> ' +
                   '  <div class="input-group mb-3">' +
                   '    <button class="btn btn-primary btn-sm minus_btn" type="button" id="minus_' + e.id + '_btn">-</button>' +
-                  '    <span class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">' + item_qty + '</span>' +
+                  //  '    <span type="number" class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty">' + item_qty + '</span>' +
+                  '    <input type="number" class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty" value="' + item_qty + '">' +
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
                   '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" data-bs-production_id="' + production_id + '" data-bs-production_count="' + asset_gives_count + '" data-bs-consumption_ids="' + consumption_ids + '" data-bs-consumption_counts="' + asset_takes_count + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
+                  ' ' + mcap_div +
                   ' ' + volumeDiv +
                   ' ' + card_body +
                   /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
@@ -1161,7 +1207,7 @@ function updateSummary(){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         total_production += parseFloat(e.count) * parseFloat(usd_price)
         if (e.count > 0.0001){
-            $('#production-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + e.count.toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
+            $('#production-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + parseFloat(e.count).toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * usd_price).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
         }
     })
     var consumption = JSON.parse(window.localStorage.getItem('consumption'))
@@ -1170,7 +1216,7 @@ function updateSummary(){
         var usd_price = getUsdPrice(item_market_price.market, item_market_price.price)
         total_consumption += parseFloat(e.count) * parseFloat(usd_price)
         if (e.count > 0.0001){
-            $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + (e.count).toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * parseFloat(usd_price)).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
+            $('#consumption-container').append('<div class="asset_summary"><span>' + getAssetName(e.assetId) + ' = </span><span> ' + parseFloat(e.count).toFixed(3) + ' </span><span> (' + (parseFloat(e.count) * parseFloat(usd_price)).toFixed(3) + ' ' + fiat_default.toUpperCase() +  ')</span></div>')
         }
     })
 
@@ -1186,11 +1232,11 @@ function updateSummary(){
 
 
 $(document).on('click', '.add_btn', function () {
-    var asset_val = parseInt($(this).siblings('.asset_input').text());
+    var asset_val = parseInt($(this).siblings('.asset_input').val()) || 0;
     var asset_id = $(this).siblings('.asset_input').data('asset_id');
     var crop_type = $(this).siblings('.asset_input').data('crop_type');
     asset_val += 1
-    $(this).siblings('.asset_input').text(asset_val)
+    $(this).siblings('.asset_input').val(asset_val)
 
     if (crop_type !== "undefined"){
         window.localStorage.setItem(crop_type, asset_val);
@@ -1368,12 +1414,12 @@ $(document).on('click', '.add_btn', function () {
 });
 
 $(document).on('click', '.minus_btn', function () {
-    var asset_val = parseInt($(this).siblings('.asset_input').text());
+    var asset_val = parseInt($(this).siblings('.asset_input').val()) || 0;
     var asset_id = $(this).siblings('.asset_input').data('asset_id');
     var crop_type = $(this).siblings('.asset_input').data('crop_type');
     asset_val -= 1
     if (asset_val > -1){
-        $(this).siblings('.asset_input').text(asset_val)
+        $(this).siblings('.asset_input').val(asset_val)
         if (crop_type !== "undefined"){
             window.localStorage.setItem(crop_type, asset_val);
         }
@@ -1550,10 +1596,200 @@ $(document).on('click', '.minus_btn', function () {
     }
     else {
         asset_val = 0
-        $(this).siblings('.asset_input').text(asset_val)
+        $(this).siblings('.asset_input').val(asset_val)
     }
 
 })
+
+
+$(document).on('change', '.asset_input', function () {
+    var asset_val = parseInt($(this).val()) || 0;
+    var asset_id = $(this).data('asset_id');
+    var crop_type = $(this).data('crop_type');
+
+    if (asset_val > -1){
+        $(this).val(asset_val)
+        if (crop_type !== "undefined"){
+            window.localStorage.setItem(crop_type, asset_val);
+        }
+        else {
+            window.localStorage.setItem(asset_id, asset_val);
+        }
+        //window.localStorage.setItem(asset_id, asset_val);
+        var production = JSON.parse(window.localStorage.getItem('production')) || [];
+        var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+
+        if (fruits.includes(asset_id)){
+            var fruit_asset = fruitConfigs.find(config => config.assetId == asset_id)
+            if (typeof fruit_asset !== "undefined"){
+                if (fruit_asset.takes.length > 0){
+                    $(fruit_asset.takes).each(function(i, e){
+                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
+                        if (cons_item){
+                            cons_item.count = parseFloat(asset_val * parseFloat(e.count/fruit_asset.extractTime).toFixed(3))
+                        }
+                        else {
+                            consumption.push({assetId: e.assetId, count: parseFloat(asset_val * parseFloat(e.count/fruit_asset.extractTime).toFixed(3))})
+                        }
+                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
+                    });
+                }
+
+                if (fruit_asset.gives.length > 0){
+                    $(fruit_asset.gives).each(function(i, e){
+                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
+                        var prod_item = production.find(prod_item => prod_item.assetId == 'frf')
+                        if (prod_item){
+                            prod_item.count = parseFloat(asset_val * parseFloat(e.count/fruit_asset.extractTime).toFixed(3))
+                        }
+                        else {
+                            production.push({assetId: 'frf', count: parseFloat(asset_val * parseFloat(e.count/fruit_asset.extractTime).toFixed(3))})
+                        }
+                        window.localStorage.setItem('production', JSON.stringify(production));
+                    });
+                }
+            }
+        }
+        else if (cropLands.includes(asset_id)){
+            //var crop_type = $(this).siblings('.asset_input').data('crop_type');
+            if (crop_type == asset_id + 'corn'){
+                var corn_asset = cropConfigs.corn.find(config => config.assetId == asset_id)
+                if (typeof corn_asset !== "undefined"){
+                    if (corn_asset.takes.length > 0){
+                        $(corn_asset.takes).each(function(i, e){
+                            //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+                            var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
+                            if (cons_item){
+                                cons_item.count = parseFloat(asset_val * parseFloat(e.count/corn_asset.extractTime).toFixed(3))
+                            }
+                            else {
+                                consumption.push({assetId: e.assetId, count: parseFloat(asset_val * parseFloat(e.count/corn_asset.extractTime).toFixed(3))})
+                            }
+                            window.localStorage.setItem('consumption', JSON.stringify(consumption));
+                        });
+                    }
+
+                    if (corn_asset.gives.length > 0){
+                        $(corn_asset.gives).each(function(i, e){
+                            //var production = JSON.parse(window.localStorage.getItem('production')) || [];
+                            var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
+                            if (prod_item){
+                                prod_item.count = parseFloat(asset_val * parseFloat(e.count/corn_asset.extractTime).toFixed(3))
+                            }
+                            else {
+                                production.push({assetId: e.extractId, count: parseFloat(asset_val * parseFloat(e.count/corn_asset.extractTime).toFixed(3))})
+                            }
+                            window.localStorage.setItem('production', JSON.stringify(production));
+                        });
+                    }
+                }
+            }
+            else if (crop_type == asset_id + 'carrot'){
+                var carrot_asset = cropConfigs.carrot.find(config => config.assetId == asset_id)
+                if (typeof carrot_asset !== "undefined"){
+                    if (carrot_asset.takes.length > 0){
+                        $(carrot_asset.takes).each(function(i, e){
+                            //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+                            var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
+                            if (cons_item){
+                                cons_item.count = parseFloat(asset_val * parseFloat(e.count/carrot_asset.extractTime).toFixed(3))
+                            }
+                            else {
+                                consumption.push({assetId: e.assetId, count: parseFloat(asset_val * parseFloat(e.count/carrot_asset.extractTime).toFixed(3))})
+                            }
+                            window.localStorage.setItem('consumption', JSON.stringify(consumption));
+                        });
+                    }
+
+                    if (carrot_asset.gives.length > 0){
+                        $(carrot_asset.gives).each(function(i, e){
+                            //var production = JSON.parse(window.localStorage.getItem('production')) || [];
+                            var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
+                            if (prod_item){
+                                prod_item.count = parseFloat(asset_val * parseFloat(e.count/carrot_asset.extractTime).toFixed(3))
+                            }
+                            else {
+                                production.push({assetId: e.extractId, count: parseFloat(asset_val * parseFloat(e.count/carrot_asset.extractTime).toFixed(3))})
+                            }
+                            window.localStorage.setItem('production', JSON.stringify(production));
+                        });
+                    }
+                }
+            }
+        }
+        else if (wells.includes(asset_id)){
+            var well_asset = wellConfigs.find(config => config.assetId == asset_id)
+            if (typeof well_asset !== "undefined"){
+                if (well_asset.gives.length > 0){
+                    $(well_asset.gives).each(function(i, e){
+                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
+                        var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
+                        if (prod_item){
+                            prod_item.count = parseFloat(asset_val * parseFloat(e.count/well_asset.extractTime).toFixed(3))
+                        }
+                        else {
+                            production.push({assetId: e.extractId, count: parseFloat(asset_val * parseFloat(e.count/well_asset.extractTime).toFixed(3))})
+                        }
+                        window.localStorage.setItem('production', JSON.stringify(production));
+                    });
+                }
+            }
+        }
+        else {
+            var feed_asset = feedConfigs.find(config => config.assetId == asset_id)
+            if (typeof feed_asset !== "undefined"){
+                if (feed_asset.takes.other.length > 0){
+                    $(feed_asset.takes.other).each(function(i, e){
+                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
+                        if (cons_item){
+                            cons_item.count = parseFloat(asset_val * parseFloat((e.count * 6)/7).toFixed(3))
+                        }
+                        else {
+                            consumption.push({assetId: e.assetId, count: parseFloat(asset_val * parseFloat((e.count * 6)/7).toFixed(3))})
+                        }
+                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
+                    });
+                }
+                if (feed_asset.takes.sun.length > 0){
+                    $(feed_asset.takes.sun).each(function(i, e){
+                        //var consumption = JSON.parse(window.localStorage.getItem('consumption')) || [];
+                        var cons_item = consumption.find(cons_item => cons_item.assetId == e.assetId)
+                        if (cons_item){
+                            cons_item.count = parseFloat(asset_val * parseFloat(e.count/7).toFixed(3))
+                        }
+                        else {
+                            consumption.push({assetId: e.assetId, count: parseFloat(asset_val * parseFloat(e.count/7).toFixed(3))})
+                        }
+                        window.localStorage.setItem('consumption', JSON.stringify(consumption));
+                    });
+                }
+
+                if (feed_asset.gives.length > 0){
+                    $(feed_asset.gives).each(function(i, e){
+                        //var production = JSON.parse(window.localStorage.getItem('production')) || [];
+                        var prod_item = production.find(prod_item => prod_item.assetId == e.extractId)
+                        if (prod_item){
+                            prod_item.count = parseFloat(asset_val * parseFloat(e.count / feed_asset.extractTime).toFixed(3))
+                        }
+                        else {
+                            production.push({assetId: e.extractId, count: parseFloat(asset_val * parseFloat(e.count / feed_asset.extractTime).toFixed(3))})
+                        }
+                        window.localStorage.setItem('production', JSON.stringify(production));
+                    });
+                }
+            }
+        }
+        updateSummary();
+    }
+    else {
+        asset_val = 0
+        $(this).val(asset_val)
+    }
+
+})
+
 
 var totalTime = 0
 function timeFunction(f){
@@ -1593,6 +1829,37 @@ $(document).ready(function(){
         timeFunction(getMarketVolume)
         //getMarketVolume();
         console.log('total time', totalTime)
+
+        if ($('#sort_select').val() == 'name'){
+            sortName()
+        }
+        else if ($('#sort_select').val() == 'price'){
+            sortPrice()
+        }
+        else if ($('#sort_select').val() == 'profit'){
+            sortProfit()
+        }
+        else if ($('#sort_select').val() == 'roi'){
+            sortRoi()
+        }
+        else if ($(this).val() === 'market_cap'){
+            sortMarketCap()
+        }
+        else if ($(this).val() === 'circulating_supply'){
+            sortCircSupply()
+        }
+
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('service-worker.js')
+            .then(registration => {
+              console.log('Service Worker is registered', registration);
+            })
+            .catch(err => {
+              console.error('Registration failed:', err);
+            });
+          });
+        }
     });
   /*setInterval(function() {
   }, 300000);*/
@@ -1653,9 +1920,11 @@ function sortName(){
     $('.asset_card').each(function(i, e){
         sortArr.push([$(e).data('asset_name'), e])
     })
-    sortArr.sort(function(x, y) {
-    return x[0];
-    });
+    sortArr.sort(function(x, y){
+        if(x[0] < y[0]) { return -1; }
+        if(x[0] > y[0]) { return 1; }
+        return 0;
+    })
 
     $(sortArr).each(function(i, e){
         $('#items-container').append(e[1])
@@ -1709,17 +1978,51 @@ function sortRoi(){
     })
 }
 
+function sortMarketCap(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        sortArr.push([$(e).data('market_cap'), e])
+    })
+    sortArr.sort(function(x, y) {
+        return y[0] - x[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
+function sortCircSupply(){
+    var sortArr = []
+    $('.asset_card').each(function(i, e){
+        sortArr.push([$(e).data('circulating_supply'), e])
+    })
+    sortArr.sort(function(x, y) {
+        return y[0] - x[0];
+    });
+
+    $(sortArr).each(function(i, e){
+        $('#items-container').append(e[1])
+    })
+}
+
 $('#sort_select').change(function(){
-    if ($(this).val() == 'name'){
+    if ($(this).val() === 'name'){
         sortName()
     }
-    else if ($(this).val() == 'price'){
+    else if ($(this).val() === 'price'){
         sortPrice()
     }
-    else if ($(this).val() == 'profit'){
+    else if ($(this).val() === 'profit'){
         sortProfit()
     }
-    else if ($(this).val() == 'roi'){
+    else if ($(this).val() === 'roi'){
         sortRoi()
+    }
+    else if ($(this).val() === 'market_cap'){
+        sortMarketCap()
+    }
+    else if ($(this).val() === 'circulating_supply'){
+        sortCircSupply()
     }
 })

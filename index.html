@@ -12,6 +12,7 @@
     @import url('https://fonts.googleapis.com/css2?family=Mochiy+Pop+P+One&display=swap');
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+    <link rel="manifest" href="manifest.webmanifest">
   </head>
   <body>
     <nav class="navbar navbar-dark bg-dark fixed-top">
@@ -21,9 +22,9 @@
           <strong style="font-family: Mochiy Pop P One, sans-serif; font-size: 14px;"> - PROFITABILITY</strong>
         </a>
         <div class="nav-item text-right" id="disclaimer">
-            This is a fan made app and is no way related to the Cropbytes team.
+            This is a fan made app and is in no way related to the Cropbytes team.
             Use at your own risk. Not an investment advice.
-        </di
+        </div>
       </div>
     </nav>
     <div class="container-fluid" style="padding-top: 90px;">
@@ -39,9 +40,11 @@
             <option value="price">Price</option>
             <option value="profit">Profit</option>
             <option value="roi">ROI</option>
+            <option value="market_cap">Market Cap</option>
+            <option value="circulating_supply">Circ. Supply</option>
           </select>
         </div>
-        <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12" id="diffInfoCont">
+        <div class="col-12 col-xl-6 col-lg-6 col-md-6 col-sm-12 col-xs-12" id="diffInfoCont">
           <!--<label>Curr. Diff: <span id="current_diff"> </span></label>
           <label style="margin-left: 10px">Est. Next Diff: <span id="next_diff"> </span></label>-->
         </div>
