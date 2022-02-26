@@ -82,10 +82,17 @@ function getMiningDif(){
       currentWeek = data.data.week
       miningDif = data.data.difficulty
       nextEstDiff = parseFloat((data.data.totalMine / est_mining_supply[data.data.week]) ** 5).toFixed(2)
+      if ((currentWeek + 1) <= 10 && nextEstDiff <= 1){
+        nextEstDiff = 1
+      }
       $.each(est_mining_supply, function(i, e){
         calcl1 = parseFloat((data.data.totalMine / est_mining_supply[i]) ** 5)
         if (calcl1 <= 1){
-            nextl1 = {'week': parseInt(i) + 1, 'difficulty': calcl1.toFixed(2)}
+            var estWeek = parseInt(i) + 1
+            if (estWeek <= 10 && calcl1 <= 1){
+                calcl1 = 1
+              }
+            nextl1 = {'week': estWeek, 'difficulty': calcl1.toFixed(2)}
             return false;
         }
       })
