@@ -73,6 +73,7 @@ var miningDif
 var nextEstDiff
 var nextl1
 var currentWeek
+var totalMine
 function getMiningDif(){
   $.ajax({
     url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
@@ -81,14 +82,18 @@ function getMiningDif(){
   }).done(function(data) {
       currentWeek = data.data.week
       miningDif = data.data.difficulty
-      nextEstDiff = parseFloat((data.data.totalMine / est_mining_supply[data.data.week]) ** 5).toFixed(2)
+      totalMine = data.data.totalMine
+      nextEstDiff = parseFloat((totalMine / est_mining_supply[currentWeek]) ** 5).toFixed(2)
       if ((currentWeek + 1) <= 10 && nextEstDiff <= 1){
         nextEstDiff = 1
       }
       $.each(est_mining_supply, function(i, e){
-        calcl1 = parseFloat((data.data.totalMine / est_mining_supply[i]) ** 5)
+        calcl1 = parseFloat((totalMine / est_mining_supply[i]) ** 5)
         if (calcl1 <= 1){
-            var estWeek = parseInt(i) + 1
+            var estWeek = parseInt(i) - 1
+            if ((parseInt(i) - 1) <= currentWeek){
+                estWeek = parseInt(i) + 1
+            }
             if (estWeek <= 10 && calcl1 <= 1){
                 calcl1 = 1
               }
@@ -96,7 +101,7 @@ function getMiningDif(){
             return false;
         }
       })
-      $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week ' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
+      $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' (Week '+ currentWeek + ') <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week ' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
     });
 
 
@@ -105,12 +110,28 @@ function getMiningDif(){
 function getMiningVsExchange(extract_id){
     var market_price = getPrice(extract_id).price
     var extract_conversion_rate = extractsMiningRequirements[extract_id]
-
-    var mining_return = extract_conversion_rate * miningDif
-    var exchange_return = 1 / market_price
-    var next_mining_return = extract_conversion_rate * nextEstDiff
-    var est_dl1_price = (exchange_return * market_price) / extract_conversion_rate
-    return {'mining_return': mining_return, 'exchange_return': exchange_return, 'next_mining_return': next_mining_return, 'est_dl1_price': est_dl1_price}
+    var next_extract_conversion_rate = extractsMiningRequirements[extract_id]
+    var weekFloor = Math.ceil(currentWeek / 10) - 1//parseInt(currentWeek / 10, 10) * 10;
+    var nextWeekFloor = Math.ceil((currentWeek + 1) / 10) - 1//parseInt((currentWeek + 1) / 10, 10) * 10;
+    console.log('weekFloor', weekFloor, nextWeekFloor)
+    for (var n = 0; n < weekFloor; n++){
+        extract_conversion_rate += parseFloat(parseFloat(extract_conversion_rate * 0.1).toFixed(2))
+        console.log('extract_conversion_rate', parseFloat(parseFloat(extract_conversion_rate).toFixed(2)))
+    }
+    for (var n = 0; n < nextWeekFloor; n++){
+        next_extract_conversion_rate += parseFloat(parseFloat(next_extract_conversion_rate * 0.1).toFixed(2))
+        console.log('next_extract_conversion_rate', parseFloat(parseFloat(next_extract_conversion_rate).toFixed(2)))
+    }
+    var mining_return = parseFloat(parseFloat(extract_conversion_rate * miningDif).toFixed(2))
+    var exchange_return = parseFloat(parseFloat(1 / market_price).toFixed(2))
+    var next_mining_return = parseFloat(parseFloat(next_extract_conversion_rate * nextEstDiff).toFixed(2))
+    console.log('nest_est_mining_change', mining_return, next_mining_return)
+    var nest_est_mining_change = {'mining': parseFloat(parseFloat(((mining_return - next_mining_return) / mining_return) * 100).toFixed(2)),
+                                  'exchange': parseFloat(parseFloat(((exchange_return - next_mining_return) / exchange_return) * 100).toFixed(2))}
+    var est_dl1_price = parseFloat(parseFloat((exchange_return * market_price) / extract_conversion_rate).toFixed(2))
+    return {'mining_return': mining_return, 'exchange_return': exchange_return, 'next_mining_return': next_mining_return,
+    'est_dl1_price': est_dl1_price, 'extract_conversion_rate': parseFloat(parseFloat(extract_conversion_rate).toFixed(2)),
+    'nest_est_mining_change': nest_est_mining_change}
 }
 
 var wells = ['sw', 'well', 'lake', 'wtw', 'spw']
@@ -1048,18 +1069,18 @@ function showCards(){
       }
       var mining_v_exchange = getMiningVsExchange(e.id)
       var mining_return_color = {}
-      if (mining_v_exchange.mining_return > mining_v_exchange.exchange_return){
+      /*if (mining_v_exchange.mining_return > mining_v_exchange.exchange_return){
         mining_return_color = {'mining': 'red', 'exchange': 'blue'}
       }
       else {
         mining_return_color = {'mining': 'blue', 'exchange': 'red'}
-      }
+      }*/
       var bsmStatus
-      if (extractsMiningRequirements[e.id] > mining_v_exchange.exchange_return){
-        bsmStatus = {'status': 'Sell', 'color': 'red'}
-      }
-      else if (mining_v_exchange.mining_return <= mining_v_exchange.exchange_return){
+      if (mining_v_exchange.mining_return <= mining_v_exchange.exchange_return){
         bsmStatus = {'status': 'Mine', 'color': 'green'}
+      }
+      else if (mining_v_exchange.extract_conversion_rate > mining_v_exchange.exchange_return){
+        bsmStatus = {'status': 'Sell', 'color': 'red'}
       }
       else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
         bsmStatus = {'status': 'Buy', 'color': 'blue'}
@@ -1076,13 +1097,13 @@ function showCards(){
       var card_body
       var roi = getRoi(usd_price, daily_profit)
       if (extracts.includes(e.id)){
-        card_body = '    <div class="row">' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Conversion rate: ' + extractsMiningRequirements[e.id] + ' ' + e.id + '/ 1 cbx</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.mining + ';">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(1) + ' ' + e.id +  '/ 1 cbx</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: ' + mining_return_color.exchange + ';">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1" style="margin-top: 5px;">Est. DL 1 price: <span style="color: ' + bsmStatus.color + ';"> ' + mining_v_exchange.est_dl1_price.toFixed(3) +  ' cbx</span></div>' +
+        card_body = '    <div class="row" style="margin-top: 5px;">' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Conversion rate: ' + mining_v_exchange.extract_conversion_rate + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.extract_conversion_rate).toFixed(2) + ' cbx)</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(2) + ' ' + e.id +  '/ 1 cbx</div>' +
+                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(2) + ' ' + e.id + '/ 1 cbx</div>' +
+                  //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1" style="margin-top: 5px;">Est. DL 1 price: <span style="color: ' + bsmStatus.color + ';"> ' + mining_v_exchange.est_dl1_price.toFixed(3) +  ' cbx</span></div>' +
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(1) + ' ' + e.id + '/ 1 cbx</div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(2) + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.next_mining_return).toFixed(2) + ' cbx)<span style="color: red;">(' + mining_v_exchange.nest_est_mining_change.mining.toFixed(0) + '%)</span><span style="color: blue;">(' + mining_v_exchange.nest_est_mining_change.exchange.toFixed(0) + '%)</span></div>' +
                   '    </div>'
       }
       else {
