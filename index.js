@@ -2,7 +2,8 @@ var extracts = ['milk', 'egg', 'trf', 'wool', 'hhr', 'ftr', 'fur', 'pow']
 var extractsMiningRequirements = {
 'milk': 4, 'egg': 8, 'trf': 3, 'wool': 6, 'hhr': 1, 'ftr': 1, 'fur': 2, 'pow': 1
 }
-
+var dailyExtractProduction = {'milk': {'count': 0, 'assets_counted': []}, 'egg': {'count': 0, 'assets_counted': []}, 'trf': {'count': 0, 'assets_counted': []}, 'wool': {'count': 0, 'assets_counted': []}, 'hhr': {'count': 0, 'assets_counted': []}, 'ftr': {'count': 0, 'assets_counted': []}, 'fur': {'count': 0, 'assets_counted': []}, 'pow': {'count': 0, 'assets_counted': []}}
+var trialAssets = ['hent', 'goatt', 'cowt']
 est_mining_supply = {
 1: 974934,
 2: 1949867,
@@ -48,7 +49,7 @@ asset_distribution_count = {
     'dor': 806,
     'zing': 7158,
     'bsh': 6921,
-    'hcg': 5595,
+    'hgc': 5595,
     'bb': 7436,
     'pcg': 5968,
     'spky': 400,
@@ -118,6 +119,7 @@ function getMiningVsExchange(extract_id){
         extract_conversion_rate += parseFloat(parseFloat(extract_conversion_rate * 0.1).toFixed(2))
         console.log('extract_conversion_rate', parseFloat(parseFloat(extract_conversion_rate).toFixed(2)))
     }
+    extractsMiningRequirements[extract_id] = extract_conversion_rate
     for (var n = 0; n < nextWeekFloor; n++){
         next_extract_conversion_rate += parseFloat(parseFloat(next_extract_conversion_rate * 0.1).toFixed(2))
         console.log('next_extract_conversion_rate', parseFloat(parseFloat(next_extract_conversion_rate).toFixed(2)))
@@ -844,6 +846,19 @@ function getAssetGives(assetId){
         totalPrice += (e.count * usd_price)
         assetGives = e.extractId
         assetGivesCount = (e.count * (7/extractTime)) / 7
+
+        if (extracts.includes(e.extractId)){
+            if (dailyExtractProduction[e.extractId]['assets_counted'].includes(assetId)){
+                console.log('included')
+            }
+            else {
+                if (typeof asset_distribution_count[assetId] !== "undefined"){
+                    dailyExtractProduction[e.extractId]['count'] += (asset_distribution_count[assetId] * assetGivesCount)
+                    dailyExtractProduction[e.extractId]['assets_counted'].push(assetId)
+                }
+            }
+        }
+        console.log(assetId, e.extractId, asset_distribution_count[assetId], assetGivesCount)
       });
     }
     return [gives_cont.prop('outerHTML'), totalPrice, extractTime, assetGives, assetGivesCount]
@@ -924,6 +939,19 @@ function getWellGives(assetId){
         totalPrice += parseFloat(e.count * usd_price)
         wellGives = e.extractId
         wellGivesCount = (e.count * (7/extractTime)) / 7
+
+        if (extracts.includes(e.extractId)){
+            if (dailyExtractProduction[e.extractId]['assets_counted'].includes(assetId)){
+                console.log('included')
+            }
+            else {
+                if (typeof asset_distribution_count[assetId] !== "undefined"){
+                    dailyExtractProduction[e.extractId]['count'] += (asset_distribution_count[assetId] * wellGivesCount)
+                    dailyExtractProduction[e.extractId]['assets_counted'].push(assetId)
+                }
+            }
+        }
+        console.log(assetId, e.extractId, asset_distribution_count[assetId], wellGivesCount)
       });
     }
     return [gives_cont.prop('outerHTML'), totalPrice, extractTime, wellGives, wellGivesCount]
@@ -1010,6 +1038,18 @@ function getCropGives(assetId, cloneId){
 }
 
 
+function showExtractDailyProduction(){
+    $.each(dailyExtractProduction, function(i, e){
+        var extractCount = parseInt(e['count']).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        var cbxCount = parseInt(parseInt(e['count']) / extractsMiningRequirements[i]).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+        $('#daily' + i + 'Production').text(extractCount);
+        $('#daily' + i + 'CbxProduction').text(cbxCount);
+    });
+}
+
+
+
+
 
 function showCards(){
   $(currencies).each(function(i, e){
@@ -1093,7 +1133,7 @@ function showCards(){
                     '         </div>' +
                     '        </div>' +
                     '    </div>'
-
+      var extractProducedDiv = ''
       var card_body
       var roi = getRoi(usd_price, daily_profit)
       if (extracts.includes(e.id)){
@@ -1105,6 +1145,13 @@ function showCards(){
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(2) + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.next_mining_return).toFixed(2) + ' cbx)<span style="color: red;">(' + mining_v_exchange.nest_est_mining_change.mining.toFixed(0) + '%)</span><span style="color: blue;">(' + mining_v_exchange.nest_est_mining_change.exchange.toFixed(0) + '%)</span></div>' +
                   '    </div>'
+
+        extractProducedDiv = '<div class="row" style="margin-top: 5px;">' +
+                   '<div class="col-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Daily Production (' + e.id + '): <span id="daily' + e.id + 'Production"></span></div>' +
+                   '<div class="col-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Daily Production (cbx): <span id="daily' + e.id + 'CbxProduction"></span></div>' +
+                   '</div>'
+
+
       }
       else {
         var feedHarvestRow
@@ -1124,7 +1171,7 @@ function showCards(){
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + roi + ' days</div>' +
                   '    </div>'
       }
-      //var item_qty = window.localStorage.getItem(e.id) || 0;
+
 
       var asset_gives = []
       var asset_gives_count = []
@@ -1186,13 +1233,7 @@ function showCards(){
                   ' ' + mcap_div +
                   ' ' + volumeDiv +
                   ' ' + card_body +
-                  /*'    <div class="card-text" style="color: red;"> Takes: </div> ' + getAssetTakes(e.id)[0] + getFruitTakes(e.id)[0] + getCropTakes(e.id, e.cloneId)[0] +
-                  '    <div class="card-text" style="color: blue;"> Gives: </div> ' + getAssetGives(e.id)[0] + getFruitGives(e.id)[0] + getWellGives(e.id)[0] + getCropGives(e.id, e.cloneId)[0] +
-                  '    <div class="card-text" style="color: blue;"> Harvest time: </div> ' + harvestTime + ' days' +
-                  '    <div class="row">' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Daily Profit: </div> ' + daily_profit.toFixed(3) + ' ' + fiat_default.toUpperCase() +  '</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">ROI: </div>' + getRoi(usd_price, daily_profit) + ' days</div>' +
-                  '    </div>' +*/
+                  ' ' + extractProducedDiv +
                   '</div>' +
                 ' </div>' +
                 '</div>'
@@ -1857,6 +1898,8 @@ $(document).ready(function(){
   //showCards();
   timeFunction(updateSummary)
   //updateSummary();
+  timeFunction(showExtractDailyProduction)
+  //showExtractDailyProduction();
   $('.loadingCont').fadeOut(1000);
   console.log('total time', totalTime)
 
