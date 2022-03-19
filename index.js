@@ -731,7 +731,7 @@ function getPrice(assetId){
     var curr = currencies.find(currency => currency.id == assetId)
     if (typeof curr !== "undefined"){
 
-        return {'price': curr.default_price, 'market': 'trx', 'type': 'Default'}
+        return {'price': curr.default_price, 'market': 'cbx', 'type': 'Default'}
       }
     else {
         return {'price': 0, 'market': ''}
