@@ -75,38 +75,36 @@ var nextEstDiff
 var nextl1
 var currentWeek
 var totalMine
-function getMiningDif(){
-  $.ajax({
-    url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
-    context: 'application/json',
-    async: false
-  }).done(function(data) {
-      currentWeek = data.data.week
-      miningDif = data.data.difficulty
-      totalMine = data.data.totalMine
-      nextEstDiff = parseFloat((totalMine / est_mining_supply[currentWeek]) ** 5).toFixed(2)
-      if ((currentWeek + 1) <= 10 && nextEstDiff <= 1){
-        nextEstDiff = 1
-      }
-      $.each(est_mining_supply, function(i, e){
-        calcl1 = parseFloat((totalMine / est_mining_supply[i]) ** 5)
-        if (calcl1 <= 1){
-            var estWeek = parseInt(i) - 1
-            if ((parseInt(i) - 1) <= currentWeek){
-                estWeek = parseInt(i) + 1
-            }
-            if (estWeek <= 10 && calcl1 <= 1){
-                calcl1 = 1
-              }
-            nextl1 = {'week': estWeek, 'difficulty': calcl1.toFixed(2)}
-            return false;
-        }
-      })
-    //   $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' (Week '+ currentWeek + ') <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
-    });
-
-
-}
+// function getMiningDif(){
+//   $.ajax({
+//     url: "https://api.cropbytes.com/api/v1/game/assets/mine_stats",
+//     context: 'application/json',
+//     async: false
+//   }).done(function(data) {
+//       currentWeek = data.data.week
+//       miningDif = data.data.difficulty
+//       totalMine = data.data.totalMine
+//       nextEstDiff = parseFloat((totalMine / est_mining_supply[currentWeek]) ** 5).toFixed(2)
+//       if ((currentWeek + 1) <= 10 && nextEstDiff <= 1){
+//         nextEstDiff = 1
+//       }
+//       $.each(est_mining_supply, function(i, e){
+//         calcl1 = parseFloat((totalMine / est_mining_supply[i]) ** 5)
+//         if (calcl1 <= 1){
+//             var estWeek = parseInt(i) - 1
+//             if ((parseInt(i) - 1) <= currentWeek){
+//                 estWeek = parseInt(i) + 1
+//             }
+//             if (estWeek <= 10 && calcl1 <= 1){
+//                 calcl1 = 1
+//               }
+//             nextl1 = {'week': estWeek, 'difficulty': calcl1.toFixed(2)}
+//             return false;
+//         }
+//       })
+//     //   $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' (Week '+ currentWeek + ') <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
+//     });
+// }
 
 function getMiningVsExchange(extract_id){
     var market_price = getPrice(extract_id).price
@@ -1115,16 +1113,16 @@ function showCards(){
       else {
         mining_return_color = {'mining': 'blue', 'exchange': 'red'}
       }*/
-      var bsmStatus
-      if (mining_v_exchange.mining_return <= mining_v_exchange.exchange_return){
-        bsmStatus = {'status': 'Mine', 'color': 'green'}
-      }
-      else if (mining_v_exchange.extract_conversion_rate > mining_v_exchange.exchange_return){
-        bsmStatus = {'status': 'Sell', 'color': 'red'}
-      }
-      else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
-        bsmStatus = {'status': 'Buy', 'color': 'blue'}
-      }
+    //   var bsmStatus
+    //   if (mining_v_exchange.mining_return <= mining_v_exchange.exchange_return){
+    //     bsmStatus = {'status': 'Mine', 'color': 'green'}
+    //   }
+    //   else if (mining_v_exchange.extract_conversion_rate > mining_v_exchange.exchange_return){
+    //     bsmStatus = {'status': 'Sell', 'color': 'red'}
+    //   }
+    //   else if (mining_v_exchange.exchange_return < mining_v_exchange.mining_return){
+    //     bsmStatus = {'status': 'Buy', 'color': 'blue'}
+    //   }
 
       var volumeDiv = '    <div class="row volumeCont ' + e.id + 'VolumeCont" style="margin-top: 10px;"> ' +
                     '        <div class="d-flex justify-content-center">' +
@@ -1142,7 +1140,7 @@ function showCards(){
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(2) + ' ' + e.id +  '/ 1 cbx</div>' +
                   '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(2) + ' ' + e.id + '/ 1 cbx</div>' +
                   //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1" style="margin-top: 5px;">Est. DL 1 price: <span style="color: ' + bsmStatus.color + ';"> ' + mining_v_exchange.est_dl1_price.toFixed(3) +  ' cbx</span></div>' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
+                  //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(2) + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.next_mining_return).toFixed(2) + ' cbx)<span style="color: red;">(' + mining_v_exchange.nest_est_mining_change.mining.toFixed(0) + '%)</span><span style="color: blue;">(' + mining_v_exchange.nest_est_mining_change.exchange.toFixed(0) + '%)</span></div>' +
                   '    </div>'
 
