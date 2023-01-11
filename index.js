@@ -1137,11 +1137,11 @@ function showCards(){
       if (extracts.includes(e.id)){
         card_body = '    <div class="row" style="margin-top: 5px;">' +
                   '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Conversion rate: ' + mining_v_exchange.extract_conversion_rate + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.extract_conversion_rate).toFixed(2) + ' cbx)</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(2) + ' ' + e.id +  '/ 1 cbx</div>' +
-                  '         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: blue;">Exchange conversion: </div>' + parseFloat(mining_v_exchange.exchange_return).toFixed(2) + ' ' + e.id + '/ 1 cbx</div>' +
+                  //'         <div class="col-6 col-xl-6 col-lg-6 col-md-6 col-sm-6 col-xs-6 px-1"> <div style="color: red;">Mining conversion: </div> ' + parseFloat(mining_v_exchange.mining_return).toFixed(2) + ' ' + e.id +  '/ 1 cbx</div>' +
+                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> <span style="color: blue;">Exchange: </span>' + parseFloat(mining_v_exchange.exchange_return).toFixed(2) + ' ' + e.id + '/ 1 cbx</div>' +
                   //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1" style="margin-top: 5px;">Est. DL 1 price: <span style="color: ' + bsmStatus.color + ';"> ' + mining_v_exchange.est_dl1_price.toFixed(3) +  ' cbx</span></div>' +
                   //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1">Status: <span style="color: ' + bsmStatus.color + ';"> ' + bsmStatus.status +  '</span></div>' +
-                  '         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(2) + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.next_mining_return).toFixed(2) + ' cbx)<span style="color: red;">(' + mining_v_exchange.nest_est_mining_change.mining.toFixed(0) + '%)</span><span style="color: blue;">(' + mining_v_exchange.nest_est_mining_change.exchange.toFixed(0) + '%)</span></div>' +
+                  //'         <div class="col-12 col-xl-12 col-lg-12 col-md-12 col-sm-12 col-xs-12 px-1"> Est. next mining conversion: ' + parseFloat(mining_v_exchange.next_mining_return).toFixed(2) + ' ' + e.id + '/ 1 cbx (' + parseFloat(1/mining_v_exchange.next_mining_return).toFixed(2) + ' cbx)<span style="color: red;">(' + mining_v_exchange.nest_est_mining_change.mining.toFixed(0) + '%)</span><span style="color: blue;">(' + mining_v_exchange.nest_est_mining_change.exchange.toFixed(0) + '%)</span></div>' +
                   '    </div>'
 
         extractProducedDiv = '<div class="row" style="margin-top: 5px;">' +
@@ -1227,7 +1227,8 @@ function showCards(){
                   '    <input type="number" class="form-control text-center asset_input" data-crop_type="' + e.cloneId + '" data-asset_id="' + e.id + '" id="asset_' + e.id + '_qty" value="' + item_qty + '">' +
                   '    <button class="btn btn-primary btn-sm add_btn" type="button" id="plus_' + e.id + '_btn">+</button>' +
                   '  </div>' +
-                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" data-bs-production_id="' + production_id + '" data-bs-production_count="' + asset_gives_count + '" data-bs-consumption_ids="' + consumption_ids + '" data-bs-consumption_counts="' + asset_takes_count + '" style="padding:0;"><i class="bi bi-graph-up"></i></button></div>' +
+                  '  <div>' + item_market_price.type + ' price: ' + item_market_price.price +' ' + item_market_price.market + ' (' + parseFloat(usd_price).toFixed(2)  + ' ' + fiat_default.toUpperCase() +  ') </div>' +
+                  '  <div><button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#chartsModal" data-bs-asset_id="'+ e.id +'" data-bs-market="' + item_market_price.market + '" data-bs-production_id="' + production_id + '" data-bs-production_count="' + asset_gives_count + '" data-bs-consumption_ids="' + consumption_ids + '" data-bs-consumption_counts="' + asset_takes_count + '" style="padding:0; font-size: 0.8rem;">Chart <i class="bi bi-graph-up"></i></button></div>' +
                   ' ' + mcap_div +
                   ' ' + volumeDiv +
                   ' ' + card_body +
