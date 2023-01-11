@@ -1892,7 +1892,7 @@ $(document).ready(function(){
   //getTickers()
   timeFunction(getMarkets)
   //getMarkets();
-  timeFunction(getMiningDif)
+//   timeFunction(getMiningDif)
   //getMiningDif()
   timeFunction(showCards)
   //showCards();
