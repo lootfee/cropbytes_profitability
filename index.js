@@ -102,7 +102,7 @@ function getMiningDif(){
             return false;
         }
       })
-      $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' (Week '+ currentWeek + ') <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week ' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
+    //   $('#diffInfoCont').append('<strong>Current Diff: ' + miningDif + ' (Week '+ currentWeek + ') <span style="margin-left: 10px;">Next Est. Diff: ' + nextEstDiff + '</span>\n<span style="margin-left: 10px;">Next Est. DL &leq; 1: Week' + nextl1.week + ' (' + nextl1.difficulty + ')' + '</span></strong>')
     });
 
 
